@@ -1,0 +1,13 @@
+### 1. 先调用登录接口获取 Token (假设你的登录接口如下)
+POST http://localhost:8080/login
+Content-Type: x-www-form-urlencoded
+
+username=your_name&password=your_password
+
+POST http://localhost:8080/video
+Authorization: 粘贴你刚才获取的长长的Token
+Content-Type: x-www-form-urlencoded
+
+title=我鉴到的第一块绝世好石&
+description=太震撼了&
+videoUrl=http://example.com/video1.mp4
