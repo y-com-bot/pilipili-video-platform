@@ -2,7 +2,6 @@
 
 > TopView 2026 后端一轮考核项目 - 纯 JavaWeb 打造
 >
-> 目标：战胜 pilipala、踢踏、慢脚等垃圾平台，让赤石的乐趣重新盛行！
 
 ## 🛠️ 技术栈 (Tech Stack)
 本项目**严格遵守考核要求**，未引入 SpringBoot、SpringMVC 和 MyBatis 等框架，全程采用原生技术栈栈构建，深入理解底层原理。
