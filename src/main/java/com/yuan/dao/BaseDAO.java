@@ -69,6 +69,28 @@ public class BaseDAO {
         return list;
     }
 
+    public Object queryForValue(String sql, Object... args) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = MyDataSource.getConnection();
+            ps = conn.prepareStatement(sql);
+            for (int i = 0; i < args.length; i++) {
+                ps.setObject(i + 1, args[i]);
+            }
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getObject(1);
+            }
+        } catch (SQLException e) {
+            AppLogger.getLogger().log(Level.SEVERE, "query single value failed", e);
+        } finally {
+            BaseDAO.closeResource(null, ps, rs);
+        }
+        return null;
+    }
+
 
     protected static void closeResource(Connection conn, PreparedStatement ps, java.sql.ResultSet rs ){
         try{
@@ -77,6 +99,5 @@ public class BaseDAO {
         }catch(SQLException e){
             AppLogger.getLogger().log(Level.SEVERE,"关闭资源发生异常",e);
         }
-
     }
 }

@@ -28,10 +28,6 @@ public class LoginServlet extends HttpServlet {
 
         String resultMessage = userService.login(username, password);
 
-        if(resultMessage.startsWith("SUCCESS")) {
-            resp.getWriter().write(resultMessage);
-        }else{
-            resp.getWriter().write(resultMessage);
-        }
+        resp.getWriter().write(resultMessage);
     }
 }

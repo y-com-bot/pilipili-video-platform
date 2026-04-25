@@ -150,10 +150,14 @@
                 };
 
                 axios.post('/video', params, config).then(res => {
-                    ElMessage.success('发布成功！');
-                    dialogVisible.value = false; // 关掉弹窗
-                    postForm.value = { title: '', videoUrl: '', description: '' }; // 清空表单
-                    loadVideos(); // 重新加载视频列表，立刻看到新发的内容
+                    if (res.data && res.data.success) {
+                        ElMessage.success('发布成功！');
+                        dialogVisible.value = false;
+                        postForm.value = { title: '', videoUrl: '', description: '' };
+                        loadVideos(); // 重新加载视频列表，立刻看到新发的内容
+                    } else {
+                        ElMessage.error(res.data?.message || '发布失败');
+                    }
                 }).catch(err => {
                     if (err.response && err.response.status === 401) {
                         ElMessage.error('登录已失效，请重新登录');

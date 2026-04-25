@@ -47,11 +47,11 @@ public class LoginFilter implements Filter {
 
         Long userId = jwt.getClaim("userId").asLong();
         if (!TokenCache.isTokenValid(userId, token)) {
-            AppLogger.getLogger().warning("Token 失效：userId=" + userId + " uri=" + uri);
+            AppLogger.getLogger().warn
+            String role = jwt.getClaim("role").asing("Token 失效：userId=" + userId + " uri=" + uri);
             throw new AppException(401, "您的账号已在其他设备登录，当前 Token 已失效！");
         }
-
-        String role = jwt.getClaim("role").asString();
+String();
         if (uri.startsWith("/admin")) {
             if (!"admin".equalsIgnoreCase(role)) {
                 throw new AppException(403, "您没有权限访问该资源");

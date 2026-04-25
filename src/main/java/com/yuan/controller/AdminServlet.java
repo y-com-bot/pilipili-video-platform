@@ -85,7 +85,6 @@ public class AdminServlet extends HttpServlet {
         Long adminUserId = (Long) req.getAttribute("currentUserId");
         String role = (String) req.getAttribute("currentRole");
 
-        // 权限验证
         if (!"admin".equalsIgnoreCase(role)) {
             throw new AppException(403, "您无权执行此操作");
         }

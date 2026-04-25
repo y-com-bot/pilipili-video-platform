@@ -24,7 +24,7 @@ public class UserService {
         newUser.setSalt(salt);
 
         String role = "user";
-        if ("admin".equalsIgnoreCase(username)) {
+        if ("admin".equals(username)) {
             role = "admin";
         }
         newUser.setRole(role);

@@ -1,7 +1,6 @@
 package com.yuan.dao;
 
 import com.yuan.entity.Comment;
-import com.yuan.utils.AppLogger;
 
 import java.util.List;
 
@@ -28,30 +27,14 @@ public class CommentDAO extends BaseDAO{
 
     public int countAllComments() {
         String sql = "select count(*) as cnt from comment";
-        try (java.sql.Connection conn = com.yuan.utils.MyDataSource.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
-             java.sql.ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("cnt");
-            }
-        } catch (java.sql.SQLException e) {
-            AppLogger.getLogger().log(java.util.logging.Level.SEVERE, "统计评论总数失败", e);
-        }
-        return 0;
+        Object count = queryForValue(sql);
+        return count == null ? 0 : ((Number) count).intValue();
     }
 
     public int sumCommentLikes() {
         String sql = "select coalesce(sum(like_count),0) as cnt from comment";
-        try (java.sql.Connection conn = com.yuan.utils.MyDataSource.getConnection();
-             java.sql.PreparedStatement ps = conn.prepareStatement(sql);
-             java.sql.ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("cnt");
-            }
-        } catch (java.sql.SQLException e) {
-            AppLogger.getLogger().log(java.util.logging.Level.SEVERE, "统计评论点赞数失败", e);
-        }
-        return 0;
+        Object count = queryForValue(sql);
+        return count == null ? 0 : ((Number) count).intValue();
     }
 
     public List<Comment> findByVideoIdOrderByHot(Long videoId){

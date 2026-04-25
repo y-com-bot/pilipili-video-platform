@@ -1,32 +1,11 @@
 package com.yuan.dao;
 
-import com.yuan.utils.AppLogger;
-import java.util.logging.Level;
-
 public class LikeDAO extends BaseDAO {
 
     public boolean checkIsLiked(Long userId, Integer targetType, Long targetId) {
-        try {
-            String sql = "select count(*) as cnt from user_like where user_id = ? and target_type = ? and target_id = ?";
-            java.sql.Connection conn = com.yuan.utils.MyDataSource.getConnection();
-            java.sql.PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setObject(1, userId);
-            ps.setObject(2, targetType);
-            ps.setObject(3, targetId);
-            java.sql.ResultSet rs = ps.executeQuery();
-            boolean result = false;
-            if (rs.next()) {
-                int count = rs.getInt("cnt");
-                result = count > 0;
-            }
-            rs.close();
-            ps.close();
-            com.yuan.utils.MyDataSource.releaseConnection(conn);
-            return result;
-        } catch (Exception e) {
-            AppLogger.getLogger().log(Level.SEVERE, "检查点赞状态失败", e);
-            return false;
-        }
+        String sql = "select count(*) as cnt from user_like where user_id = ? and target_type = ? and target_id = ?";
+        Object count = queryForValue(sql, userId, targetType, targetId);
+        return count != null && ((Number) count).intValue() > 0;
     }
 
     public void addLikeRecord(Long userId, Integer targetType, Long targetId) {

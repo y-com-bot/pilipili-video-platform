@@ -14,7 +14,6 @@ public class PasswordUtils {
         random.nextBytes(saltBytes);
         return Base64.getEncoder().encodeToString(saltBytes);
     }
-
     public static String encryptPassword(String password, String salt){
         try{
             MessageDigest md = MessageDigest.getInstance("SHA-256");

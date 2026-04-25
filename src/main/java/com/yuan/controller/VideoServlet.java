@@ -46,8 +46,7 @@ public class VideoServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
         resp.setContentType("text/html;charset=UTF-8");
 
-        // 从请求中获取当前用户ID（由LoginFilter设置）
-        Long uploaderId = (Long) req.getAttribute("currentuserId");
+        Long uploaderId = (Long) req.getAttribute("currentUserId");
         String title = req.getParameter("title");
         String videoUrl = req.getParameter("videoUrl");
         String description = req.getParameter("description");
