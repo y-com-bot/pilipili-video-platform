@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Studio | 登录与注册</title>
+    <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-layout">
+        <section class="auth-intro">
+            <span class="hero-kicker">Creator Access</span>
+            <h1>进入工作室控制台，开始发布和管理你的内容。</h1>
+            <p>
+                登录页现在直接对接 `application` 模块里的 `LoginServlet` 和 `UserServlet`。
+                登录成功后，JWT 会缓存在浏览器本地，后续访问评论、点赞、发布和管理接口时会自动带上。
+            </p>
+            <div class="hero-stats">
+                <div class="mini-card">
+                    <strong>01</strong>
+                    <span>登录拿到 token 和角色</span>
+                </div>
+                <div class="mini-card">
+                    <strong>02</strong>
+                    <span>拦截器校验 Authorization</span>
+                </div>
+                <div class="mini-card">
+                    <strong>03</strong>
+                    <span>管理员权限进入审核台</span>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a class="btn btn-secondary" href="./index.html">返回首页</a>
+                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>进入管理台</a>
+            </div>
+        </section>
+
+        <section class="auth-card">
+            <div class="tab-row">
+                <button class="tab-btn is-active" type="button" data-tab="login">登录</button>
+                <button class="tab-btn" type="button" data-tab="register">注册</button>
+            </div>
+
+            <div id="already-login" class="status-banner hidden" style="margin-bottom: 18px;">
+                <div>
+                    <strong>当前已经登录</strong>
+                    <span data-session-label>创作者模式</span>
+                </div>
+                <button class="btn btn-ghost" type="button" data-logout>退出</button>
+            </div>
+
+            <form id="login-panel" class="form-panel is-active field-grid">
+                <div>
+                    <h2>欢迎回来</h2>
+                    <p class="muted">输入账号密码后会立即命中你手写框架里的登录接口。</p>
+                </div>
+                <div class="field">
+                    <label for="login-username">用户名</label>
+                    <input id="login-username" name="username" type="text" placeholder="例如：admin">
+                </div>
+                <div class="field">
+                    <label for="login-password">密码</label>
+                    <input id="login-password" name="password" type="password" placeholder="输入密码">
+                </div>
+                <button class="btn btn-primary" type="submit">立即登录</button>
+            </form>
+
+            <form id="register-panel" class="form-panel field-grid">
+                <div>
+                    <h2>创建创作者账号</h2>
+                    <p class="muted">普通用户名会注册成 `user`，如果用户名是 `admin` 会被创建为管理员。</p>
+                </div>
+                <div class="field">
+                    <label for="register-username">用户名</label>
+                    <input id="register-username" name="username" type="text" placeholder="输入新用户名">
+                </div>
+                <div class="field">
+                    <label for="register-password">密码</label>
+                    <input id="register-password" name="password" type="password" placeholder="设置密码">
+                </div>
+                <button class="btn btn-accent" type="submit">注册并创建账号</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+<script src="./assets/js/app.js"></script>
+<script>
+    (function () {
+        const tabButtons = Array.from(document.querySelectorAll("[data-tab]"));
+        const loginPanel = document.getElementById("login-panel");
+        const registerPanel = document.getElementById("register-panel");
+        const loginForm = loginPanel;
+        const registerForm = registerPanel;
+        const alreadyLogin = document.getElementById("already-login");
+
+        function switchTab(tabName) {
+            tabButtons.forEach(function (button) {
+                button.classList.toggle("is-active", button.getAttribute("data-tab") === tabName);
+            });
+            loginPanel.classList.toggle("is-active", tabName === "login");
+            registerPanel.classList.toggle("is-active", tabName === "register");
+        }
+
+        function syncLoginState() {
+            const loggedIn = StudioApp.isLoggedIn();
+            alreadyLogin.classList.toggle("hidden", !loggedIn);
+            loginForm.classList.toggle("hidden", loggedIn);
+            registerForm.classList.toggle("hidden", loggedIn);
+        }
+
+        tabButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                switchTab(button.getAttribute("data-tab"));
+            });
+        });
+
+        loginForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submitButton = loginForm.querySelector("button");
+            submitButton.disabled = true;
+            submitButton.textContent = "登录中...";
+
+            try {
+                const formData = new FormData(loginForm);
+                const result = await StudioApp.request("api/auth/login", {
+                    method: "POST",
+                    form: {
+                        username: formData.get("username"),
+                        password: formData.get("password")
+                    }
+                });
+                StudioApp.saveSession(result);
+                StudioApp.showToast("登录成功，正在进入首页", "success");
+                StudioApp.attachSessionUi();
+                syncLoginState();
+                window.setTimeout(function () {
+                    window.location.href = StudioApp.isAdmin() ? "./admin.html" : "./index.html";
+                }, 420);
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "立即登录";
+            }
+        });
+
+        registerForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submitButton = registerForm.querySelector("button");
+            submitButton.disabled = true;
+            submitButton.textContent = "注册中...";
+
+            try {
+                const formData = new FormData(registerForm);
+                await StudioApp.request("api/auth/register", {
+                    method: "POST",
+                    form: {
+                        username: formData.get("username"),
+                        password: formData.get("password")
+                    }
+                });
+                StudioApp.showToast("注册成功，现在可以直接登录", "success");
+                document.getElementById("login-username").value = String(formData.get("username") || "");
+                document.getElementById("login-password").value = String(formData.get("password") || "");
+                registerForm.reset();
+                switchTab("login");
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "注册并创建账号";
+            }
+        });
+
+        StudioApp.attachSessionUi();
+        StudioApp.mountLogout();
+        syncLoginState();
+    }());
+</script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Studio | 创作者工作台</title>
+    <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <a class="brand" href="./index.html">
+            <div class="brand-mark">VS</div>
+            <div class="brand-copy">
+                <strong>Video Studio</strong>
+                <span>轻量视频社区 · 两模块手写框架演示</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a class="nav-link is-active" href="./index.html">首页</a>
+            <a class="nav-link" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link hidden" href="./admin.html" data-admin-only>管理台</a>
+            <a class="nav-link" href="./auth.html" data-guest-only>登录 / 注册</a>
+        </nav>
+        <div class="nav-actions">
+            <span class="pill" data-session-label>游客模式</span>
+            <button class="btn btn-ghost hidden" type="button" data-logout data-user-only>退出登录</button>
+        </div>
+    </header>
+
+    <section class="hero">
+        <article class="hero-panel">
+            <span class="hero-kicker">Studio Demo Build</span>
+            <h1>把内容发布、互动和管理，收进同一个工作室前台。</h1>
+            <p>
+                这套前端直接对接你现在的 `application + framework` 两模块结构：
+                页面走静态资源，接口走你手写的 MVC 框架，登录态和管理员链路也都已经串起来了。
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="#publish-panel">发布新视频</a>
+                <a class="btn btn-secondary" href="./auth.html" data-guest-only>先去登录</a>
+                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>进入管理台</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-chip">
+                    <strong id="hero-video-count">0</strong>
+                    <span>已加载视频</span>
+                </div>
+                <div class="stat-chip">
+                    <strong id="hero-like-count">0</strong>
+                    <span>累计点赞</span>
+                </div>
+                <div class="stat-chip">
+                    <strong id="hero-health">...</strong>
+                    <span>接口状态</span>
+                </div>
+            </div>
+        </article>
+
+        <aside class="hero-side">
+            <section class="panel panel-dark">
+                <div class="eyebrow">Session</div>
+                <h2>当前访问状态</h2>
+                <p class="muted">
+                    游客可以浏览视频和评论，登录后可以发布、评论、点赞。
+                    如果你是管理员账号，还可以进入审核台删除视频和评论。
+                </p>
+                <div class="tag-row">
+                    <span class="pill" data-session-label>游客模式</span>
+                    <span class="tag">JWT 鉴权</span>
+                    <span class="tag">框架拦截器</span>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="eyebrow">Quick Access</div>
+                <h3>常用入口</h3>
+                <div class="stack-actions" style="margin-top: 14px;">
+                    <a class="btn btn-secondary" href="./auth.html">登录 / 注册</a>
+                    <a class="btn btn-secondary" href="./video-detail.html?id=1">看详情页</a>
+                    <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>内容审核</a>
+                </div>
+            </section>
+        </aside>
+    </section>
+
+    <section class="content-grid columns-2">
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Feed</span>
+                    <h2>视频广场</h2>
+                </div>
+                <div class="search-bar" style="min-width: min(100%, 320px);">
+                    <span>搜索</span>
+                    <input id="search-input" type="text" placeholder="按标题或描述过滤">
+                </div>
+            </div>
+            <div id="video-grid" class="video-grid"></div>
+        </section>
+
+        <aside id="publish-panel" class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Publish</span>
+                    <h2>发布视频</h2>
+                </div>
+            </div>
+            <div class="status-banner">
+                <div>
+                    <strong id="publish-status-title">需要登录后发布</strong>
+                    <span id="publish-status-text">当前为游客模式，你可以先浏览内容。</span>
+                </div>
+                <a class="btn btn-secondary" href="./auth.html" data-guest-only>立即登录</a>
+            </div>
+            <form id="publish-form" class="field-grid" style="margin-top: 18px;">
+                <div class="field">
+                    <label for="video-title">视频标题</label>
+                    <input id="video-title" name="title" type="text" maxlength="60" placeholder="例如：工作室 Demo Day 回顾">
+                </div>
+                <div class="field">
+                    <label for="video-description">内容介绍</label>
+                    <textarea id="video-description" name="description" placeholder="简单介绍一下视频亮点、演示内容和想表达的主题。"></textarea>
+                </div>
+                <div class="field">
+                    <label for="video-url">视频地址</label>
+                    <input id="video-url" name="videoUrl" type="url" placeholder="填写 mp4 或可直接播放的链接">
+                    <span class="field-hint">后端目前是轻量演示版，所以这里采用“填写现成视频地址”的方式，而不是上传文件。</span>
+                </div>
+                <button class="btn btn-accent" type="submit">发布到广场</button>
+            </form>
+        </aside>
+    </section>
+</div>
+
+<script src="./assets/js/app.js"></script>
+<script>
+    (function () {
+        const state = {
+            videos: []
+        };
+
+        const videoGrid = document.getElementById("video-grid");
+        const searchInput = document.getElementById("search-input");
+        const publishForm = document.getElementById("publish-form");
+
+        function renderVideoList() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const filtered = state.videos.filter(function (video) {
+                const title = String(video.title || "").toLowerCase();
+                const description = String(video.description || "").toLowerCase();
+                return !keyword || title.includes(keyword) || description.includes(keyword);
+            });
+
+            document.getElementById("hero-video-count").textContent = filtered.length;
+            document.getElementById("hero-like-count").textContent = filtered.reduce(function (sum, item) {
+                return sum + Number(item.likeCount || 0);
+            }, 0);
+
+            if (!filtered.length) {
+                videoGrid.innerHTML = '<div class="empty-state">没有匹配到视频，换个关键词试试。</div>';
+                return;
+            }
+
+            videoGrid.innerHTML = filtered.map(function (video, index) {
+                return '' +
+                    '<article class="video-card">' +
+                    '  <div class="video-cover"><span>Scene ' + String(index + 1).padStart(2, "0") + '</span></div>' +
+                    '  <div class="video-body">' +
+                    '    <h3 class="video-title">' + StudioApp.escapeHtml(video.title || "未命名视频") + '</h3>' +
+                    '    <p class="video-desc">' + StudioApp.escapeHtml(video.description || "创作者暂时没有补充介绍。") + '</p>' +
+                    '    <div class="meta-row" style="margin-top: 14px;">' +
+                    '      <span class="tag">UP #' + StudioApp.escapeHtml(video.uploaderId || "-") + '</span>' +
+                    '      <span class="tag">点赞 ' + StudioApp.formatCount(video.likeCount) + '</span>' +
+                    '    </div>' +
+                    '    <div class="video-footer">' +
+                    '      <span class="metric">ID ' + StudioApp.escapeHtml(video.id) + '</span>' +
+                    '      <a class="btn btn-secondary" href="./video-detail.html?id=' + encodeURIComponent(video.id) + '">查看详情</a>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '</article>';
+            }).join("");
+        }
+
+        async function loadVideos() {
+            videoGrid.innerHTML = '<div class="empty-state">正在载入视频列表...</div>';
+            try {
+                const videos = await StudioApp.request("api/videos/list");
+                state.videos = Array.isArray(videos) ? videos : [];
+                renderVideoList();
+            } catch (error) {
+                videoGrid.innerHTML = '<div class="empty-state">视频加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        async function pingServer() {
+            try {
+                await StudioApp.request("api/system/ping");
+                document.getElementById("hero-health").textContent = "OK";
+            } catch (error) {
+                document.getElementById("hero-health").textContent = "ERR";
+            }
+        }
+
+        function syncPublishState() {
+            const loggedIn = StudioApp.isLoggedIn();
+            document.getElementById("publish-status-title").textContent = loggedIn ? "已登录，可直接发布" : "需要登录后发布";
+            document.getElementById("publish-status-text").textContent = loggedIn
+                ? "表单提交后会走你手写框架里的 /api/videos/publish 接口。"
+                : "当前为游客模式，你可以先浏览内容。";
+            Array.from(publishForm.elements).forEach(function (element) {
+                if (element.tagName === "BUTTON") {
+                    return;
+                }
+                element.disabled = !loggedIn;
+            });
+            publishForm.querySelector("button").disabled = !loggedIn;
+        }
+
+        publishForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+
+            const submitButton = publishForm.querySelector("button");
+            submitButton.disabled = true;
+            submitButton.textContent = "发布中...";
+
+            try {
+                const formData = new FormData(publishForm);
+                await StudioApp.request("api/videos/publish", {
+                    method: "POST",
+                    form: {
+                        title: formData.get("title"),
+                        description: formData.get("description"),
+                        videoUrl: formData.get("videoUrl")
+                    }
+                });
+                publishForm.reset();
+                StudioApp.showToast("视频已发布到广场", "success");
+                await loadVideos();
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "发布到广场";
+            }
+        });
+
+        searchInput.addEventListener("input", renderVideoList);
+
+        StudioApp.attachSessionUi();
+        StudioApp.mountLogout();
+        syncPublishState();
+        loadVideos();
+        pingServer();
+    }());
+</script>
+</body>
+</html>

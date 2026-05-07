@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Studio | 视频详情</title>
+    <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <a class="brand" href="./index.html">
+            <div class="brand-mark">VS</div>
+            <div class="brand-copy">
+                <strong>Video Studio</strong>
+                <span>内容详情 · 评论互动 · 点赞实验场</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a class="nav-link" href="./index.html">首页</a>
+            <a class="nav-link is-active" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link hidden" href="./admin.html" data-admin-only>管理台</a>
+            <a class="nav-link" href="./auth.html" data-guest-only>登录 / 注册</a>
+        </nav>
+        <div class="nav-actions">
+            <span class="pill" data-session-label>游客模式</span>
+            <button class="btn btn-ghost hidden" type="button" data-logout data-user-only>退出登录</button>
+        </div>
+    </header>
+
+    <section class="panel" style="margin-bottom: 24px;">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Detail</span>
+                <h2>视频详情页</h2>
+            </div>
+            <div class="inline-actions">
+                <a class="btn btn-secondary" href="./index.html">返回广场</a>
+                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>去审核台</a>
+            </div>
+        </div>
+        <p class="muted">
+            这个页面会串起三个核心接口：`/api/videos/detail`、`/api/comments/list`、`/api/likes/toggle`。
+            你可以直接把它当成面试演示页，展示详情、评论和点赞链路已经联通。
+        </p>
+    </section>
+
+    <section class="content-grid columns-2">
+        <div>
+            <div class="video-stage">
+                <video id="detail-video" controls playsinline></video>
+                <div class="video-info">
+                    <div class="tag-row" style="margin-bottom: 14px;">
+                        <span class="pill">视频 ID <span id="video-id">-</span></span>
+                        <span class="tag">UP 主 <span id="video-uploader">-</span></span>
+                    </div>
+                    <h1 id="video-title" style="margin: 0 0 10px; font-family: Georgia, STZhongsong, serif;">加载中...</h1>
+                    <p id="video-description" class="muted">正在拉取视频详情。</p>
+                    <div class="video-footer" style="margin-top: 18px;">
+                        <span class="metric">当前点赞 <strong id="video-like-count">0</strong></span>
+                        <div class="inline-actions">
+                            <button id="video-like-btn" class="btn btn-primary" type="button">点赞这个视频</button>
+                            <a id="video-source-link" class="btn btn-ghost" href="#" target="_blank" rel="noopener">打开原视频地址</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Comment</span>
+                    <h2>发表评论</h2>
+                </div>
+            </div>
+            <div class="status-banner" style="margin-bottom: 16px;">
+                <div>
+                    <strong id="comment-status-title">游客可浏览评论</strong>
+                    <span id="comment-status-text">登录后即可参与讨论和点赞。</span>
+                </div>
+                <a class="btn btn-secondary" href="./auth.html" data-guest-only>去登录</a>
+            </div>
+            <form id="comment-form" class="field-grid">
+                <div class="field">
+                    <label for="comment-content">评论内容</label>
+                    <textarea id="comment-content" name="content" placeholder="写下你对这个视频的看法吧。"></textarea>
+                </div>
+                <button class="btn btn-accent" type="submit">发送评论</button>
+            </form>
+        </aside>
+    </section>
+
+    <section class="panel" style="margin-top: 24px;">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Thread</span>
+                <h2>评论区</h2>
+            </div>
+            <div class="tag-row">
+                <span class="tag">按热度排序</span>
+                <span class="tag">评论也支持点赞</span>
+            </div>
+        </div>
+        <div id="comment-list" class="comment-list"></div>
+    </section>
+</div>
+
+<script src="./assets/js/app.js"></script>
+<script>
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        const videoId = params.get("id");
+        const commentForm = document.getElementById("comment-form");
+        const commentList = document.getElementById("comment-list");
+        const likeButton = document.getElementById("video-like-btn");
+        let currentVideo = null;
+
+        if (!videoId) {
+            document.getElementById("video-title").textContent = "缺少视频 ID";
+            document.getElementById("video-description").textContent = "请从首页选择一个视频进入详情。";
+            likeButton.disabled = true;
+            commentForm.querySelector("button").disabled = true;
+            commentList.innerHTML = '<div class="empty-state">当前页面没有收到有效的视频编号。</div>';
+            return;
+        }
+
+        function syncCommentState() {
+            const loggedIn = StudioApp.isLoggedIn();
+            document.getElementById("comment-status-title").textContent = loggedIn ? "已登录，可直接发表评论" : "游客可浏览评论";
+            document.getElementById("comment-status-text").textContent = loggedIn
+                ? "发送后会立即命中 /api/comments/create，并重新刷新评论列表。"
+                : "登录后即可参与讨论和点赞。";
+            commentForm.querySelector("textarea").disabled = !loggedIn;
+            commentForm.querySelector("button").disabled = !loggedIn;
+        }
+
+        function renderComments(comments) {
+            if (!comments.length) {
+                commentList.innerHTML = '<div class="empty-state">这个视频还没有评论，你可以来留下第一条。</div>';
+                return;
+            }
+
+            commentList.innerHTML = comments.map(function (comment) {
+                return '' +
+                    '<article class="comment-card">' +
+                    '  <div class="comment-body">' +
+                    '    <div class="comment-author">' +
+                    '      <div class="avatar">U' + StudioApp.escapeHtml(comment.userId) + '</div>' +
+                    '      <div>' +
+                    '        <strong>用户 #' + StudioApp.escapeHtml(comment.userId) + '</strong>' +
+                    '        <div class="muted">评论 ID ' + StudioApp.escapeHtml(comment.id) + '</div>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '    <p class="comment-text">' + StudioApp.escapeHtml(comment.content || "") + '</p>' +
+                    '    <div class="comment-footer">' +
+                    '      <span class="metric">赞同 ' + StudioApp.formatCount(comment.likeCount) + '</span>' +
+                    '      <div class="comment-toolbar">' +
+                    '        <button class="btn btn-secondary" type="button" data-like-comment="' + StudioApp.escapeHtml(comment.id) + '">给评论点赞</button>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '</article>';
+            }).join("");
+
+            commentList.querySelectorAll("[data-like-comment]").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    if (!StudioApp.requireLogin("auth.html")) {
+                        return;
+                    }
+                    button.disabled = true;
+                    try {
+                        await StudioApp.request("api/likes/toggle", {
+                            method: "POST",
+                            form: {
+                                targetType: StudioApp.LIKE_TARGET.COMMENT,
+                                targetId: button.getAttribute("data-like-comment")
+                            }
+                        });
+                        StudioApp.showToast("评论点赞状态已更新", "success");
+                        await loadComments();
+                    } catch (error) {
+                        StudioApp.showToast(error.message, "error");
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function loadVideoDetail() {
+            try {
+                currentVideo = await StudioApp.request("api/videos/detail?id=" + encodeURIComponent(videoId));
+                document.getElementById("video-id").textContent = currentVideo.id || "-";
+                document.getElementById("video-uploader").textContent = currentVideo.uploaderId || "-";
+                document.getElementById("video-title").textContent = currentVideo.title || "未命名视频";
+                document.getElementById("video-description").textContent = currentVideo.description || "创作者还没有填写介绍。";
+                document.getElementById("video-like-count").textContent = StudioApp.formatCount(currentVideo.likeCount);
+                document.getElementById("detail-video").src = currentVideo.videoUrl || "";
+                document.getElementById("video-source-link").href = currentVideo.videoUrl || "#";
+            } catch (error) {
+                document.getElementById("video-title").textContent = "视频加载失败";
+                document.getElementById("video-description").textContent = error.message;
+                likeButton.disabled = true;
+            }
+        }
+
+        async function loadComments() {
+            commentList.innerHTML = '<div class="empty-state">正在载入评论...</div>';
+            try {
+                const comments = await StudioApp.request("api/comments/list?videoId=" + encodeURIComponent(videoId));
+                renderComments(Array.isArray(comments) ? comments : []);
+            } catch (error) {
+                commentList.innerHTML = '<div class="empty-state">评论加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        likeButton.addEventListener("click", async function () {
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+            likeButton.disabled = true;
+            likeButton.textContent = "处理中...";
+            try {
+                await StudioApp.request("api/likes/toggle", {
+                    method: "POST",
+                    form: {
+                        targetType: StudioApp.LIKE_TARGET.VIDEO,
+                        targetId: videoId
+                    }
+                });
+                StudioApp.showToast("视频点赞状态已更新", "success");
+                await loadVideoDetail();
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                likeButton.disabled = false;
+                likeButton.textContent = "点赞这个视频";
+            }
+        });
+
+        commentForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+
+            const submitButton = commentForm.querySelector("button");
+            const textarea = commentForm.querySelector("textarea");
+            submitButton.disabled = true;
+            submitButton.textContent = "发送中...";
+
+            try {
+                await StudioApp.request("api/comments/create", {
+                    method: "POST",
+                    form: {
+                        videoId: videoId,
+                        content: textarea.value
+                    }
+                });
+                textarea.value = "";
+                StudioApp.showToast("评论发布成功", "success");
+                await loadComments();
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "发送评论";
+            }
+        });
+
+        StudioApp.attachSessionUi();
+        StudioApp.mountLogout();
+        syncCommentState();
+        loadVideoDetail();
+        loadComments();
+    }());
+</script>
+</body>
+</html>

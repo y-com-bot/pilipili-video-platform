@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Studio | 管理审核台</title>
+    <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <a class="brand" href="./index.html">
+            <div class="brand-mark">VS</div>
+            <div class="brand-copy">
+                <strong>Video Studio</strong>
+                <span>管理员后台 · 内容与互动审核</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a class="nav-link" href="./index.html">首页</a>
+            <a class="nav-link" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link is-active" href="./admin.html">管理台</a>
+        </nav>
+        <div class="nav-actions">
+            <span class="pill admin" data-session-label>管理员</span>
+            <button class="btn btn-ghost" type="button" data-logout>退出登录</button>
+        </div>
+    </header>
+
+    <section class="panel" style="margin-bottom: 24px;">
+        <div class="section-head">
+            <div>
+                <span class="section-kicker">Moderation</span>
+                <h2>工作室审核台</h2>
+            </div>
+            <div class="inline-actions">
+                <button id="refresh-admin" class="btn btn-secondary" type="button">刷新数据</button>
+                <a class="btn btn-secondary" href="./index.html">回到首页</a>
+            </div>
+        </div>
+        <p class="muted">
+            这里直接串起管理员接口 `/api/admin/list`、`/api/admin/stats`、`/api/admin/deleteVideo`、
+            `/api/admin/deleteComment`，同时借用普通评论接口拉取指定视频的评论做审核。
+        </p>
+    </section>
+
+    <section class="stats-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <article class="metric-card"><strong id="stat-videos">0</strong><span>视频总数</span></article>
+        <article class="metric-card"><strong id="stat-comments">0</strong><span>评论总数</span></article>
+        <article class="metric-card"><strong id="stat-users">0</strong><span>用户总数</span></article>
+        <article class="metric-card"><strong id="stat-likes">0</strong><span>全站点赞数</span></article>
+    </section>
+
+    <section class="content-grid columns-2">
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Videos</span>
+                    <h2>视频审核列表</h2>
+                </div>
+                <span class="tag">点击某条视频后加载对应评论</span>
+            </div>
+            <div id="admin-video-list" class="admin-list"></div>
+        </section>
+
+        <aside class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Comments</span>
+                    <h2>评论审核区</h2>
+                </div>
+            </div>
+            <div id="selected-video-tip" class="status-banner" style="margin-bottom: 16px;">
+                <div>
+                    <strong>尚未选择视频</strong>
+                    <span>点击左侧某个视频后，这里会显示它的评论列表。</span>
+                </div>
+            </div>
+            <div id="admin-comment-list" class="admin-list"></div>
+        </aside>
+    </section>
+</div>
+
+<script src="./assets/js/app.js"></script>
+<script>
+    (function () {
+        const videoListNode = document.getElementById("admin-video-list");
+        const commentListNode = document.getElementById("admin-comment-list");
+        const selectedVideoTip = document.getElementById("selected-video-tip");
+        let selectedVideoId = null;
+
+        if (!StudioApp.requireAdmin("index.html")) {
+            return;
+        }
+
+        async function loadStats() {
+            const stats = await StudioApp.request("api/admin/stats");
+            document.getElementById("stat-videos").textContent = StudioApp.formatCount(stats.totalVideos);
+            document.getElementById("stat-comments").textContent = StudioApp.formatCount(stats.totalComments);
+            document.getElementById("stat-users").textContent = StudioApp.formatCount(stats.totalUsers);
+            document.getElementById("stat-likes").textContent = StudioApp.formatCount(stats.totalLikes);
+        }
+
+        function bindVideoActions() {
+            videoListNode.querySelectorAll("[data-select-video]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    selectedVideoId = button.getAttribute("data-select-video");
+                    selectedVideoTip.innerHTML = '' +
+                        '<div>' +
+                        '  <strong>正在审核视频 #' + StudioApp.escapeHtml(selectedVideoId) + '</strong>' +
+                        '  <span>右侧显示的是这个视频下的评论列表。</span>' +
+                        '</div>';
+                    loadCommentsForVideo(selectedVideoId);
+                });
+            });
+
+            videoListNode.querySelectorAll("[data-delete-video]").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    const videoId = button.getAttribute("data-delete-video");
+                    if (!window.confirm("确定删除视频 #" + videoId + " 吗？")) {
+                        return;
+                    }
+
+                    button.disabled = true;
+                    try {
+                        await StudioApp.request("api/admin/deleteVideo", {
+                            method: "POST",
+                            form: {
+                                videoId: videoId
+                            }
+                        });
+                        StudioApp.showToast("视频删除成功", "success");
+                        if (selectedVideoId === videoId) {
+                            selectedVideoId = null;
+                            commentListNode.innerHTML = "";
+                            selectedVideoTip.innerHTML = '' +
+                                '<div><strong>尚未选择视频</strong><span>点击左侧某个视频后，这里会显示它的评论列表。</span></div>';
+                        }
+                        await loadAdminVideos();
+                        await loadStats();
+                    } catch (error) {
+                        StudioApp.showToast(error.message, "error");
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function loadAdminVideos() {
+            videoListNode.innerHTML = '<div class="empty-state">正在加载管理视频列表...</div>';
+            try {
+                const videos = await StudioApp.request("api/admin/list");
+                if (!Array.isArray(videos) || !videos.length) {
+                    videoListNode.innerHTML = '<div class="empty-state">当前没有可管理的视频。</div>';
+                    return;
+                }
+
+                videoListNode.innerHTML = videos.map(function (video) {
+                    return '' +
+                        '<article class="admin-item">' +
+                        '  <div class="admin-body">' +
+                        '    <h3 class="admin-title">' + StudioApp.escapeHtml(video.title || "未命名视频") + '</h3>' +
+                        '    <p class="admin-desc">' + StudioApp.escapeHtml(video.description || "创作者未填写描述。") + '</p>' +
+                        '    <div class="tag-row" style="margin-top: 14px;">' +
+                        '      <span class="tag">ID ' + StudioApp.escapeHtml(video.id) + '</span>' +
+                        '      <span class="tag">UP #' + StudioApp.escapeHtml(video.uploaderId) + '</span>' +
+                        '      <span class="tag">赞 ' + StudioApp.formatCount(video.likeCount) + '</span>' +
+                        '    </div>' +
+                        '    <div class="admin-footer">' +
+                        '      <button class="btn btn-secondary" type="button" data-select-video="' + StudioApp.escapeHtml(video.id) + '">查看评论</button>' +
+                        '      <div class="inline-actions">' +
+                        '        <a class="btn btn-ghost" href="./video-detail.html?id=' + encodeURIComponent(video.id) + '">打开详情</a>' +
+                        '        <button class="btn btn-danger" type="button" data-delete-video="' + StudioApp.escapeHtml(video.id) + '">删除视频</button>' +
+                        '      </div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '</article>';
+                }).join("");
+
+                bindVideoActions();
+            } catch (error) {
+                videoListNode.innerHTML = '<div class="empty-state">视频审核列表加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        function bindCommentActions() {
+            commentListNode.querySelectorAll("[data-delete-comment]").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    const commentId = button.getAttribute("data-delete-comment");
+                    if (!window.confirm("确定删除评论 #" + commentId + " 吗？")) {
+                        return;
+                    }
+
+                    button.disabled = true;
+                    try {
+                        await StudioApp.request("api/admin/deleteComment", {
+                            method: "POST",
+                            form: {
+                                commentId: commentId
+                            }
+                        });
+                        StudioApp.showToast("评论删除成功", "success");
+                        if (selectedVideoId) {
+                            await loadCommentsForVideo(selectedVideoId);
+                        }
+                        await loadStats();
+                    } catch (error) {
+                        StudioApp.showToast(error.message, "error");
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function loadCommentsForVideo(videoId) {
+            commentListNode.innerHTML = '<div class="empty-state">正在加载该视频的评论...</div>';
+            try {
+                const comments = await StudioApp.request("api/comments/list?videoId=" + encodeURIComponent(videoId));
+                if (!Array.isArray(comments) || !comments.length) {
+                    commentListNode.innerHTML = '<div class="empty-state">这个视频下还没有评论。</div>';
+                    return;
+                }
+
+                commentListNode.innerHTML = comments.map(function (comment) {
+                    return '' +
+                        '<article class="admin-item">' +
+                        '  <div class="admin-body">' +
+                        '    <h3 class="admin-title">评论 #' + StudioApp.escapeHtml(comment.id) + '</h3>' +
+                        '    <p class="admin-desc">' + StudioApp.escapeHtml(comment.content || "") + '</p>' +
+                        '    <div class="tag-row" style="margin-top: 14px;">' +
+                        '      <span class="tag">作者 #' + StudioApp.escapeHtml(comment.userId) + '</span>' +
+                        '      <span class="tag">点赞 ' + StudioApp.formatCount(comment.likeCount) + '</span>' +
+                        '    </div>' +
+                        '    <div class="admin-footer">' +
+                        '      <span class="metric">所属视频 ' + StudioApp.escapeHtml(comment.videoId) + '</span>' +
+                        '      <button class="btn btn-danger" type="button" data-delete-comment="' + StudioApp.escapeHtml(comment.id) + '">删除评论</button>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '</article>';
+                }).join("");
+
+                bindCommentActions();
+            } catch (error) {
+                commentListNode.innerHTML = '<div class="empty-state">评论列表加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        document.getElementById("refresh-admin").addEventListener("click", async function () {
+            try {
+                await loadStats();
+                await loadAdminVideos();
+                if (selectedVideoId) {
+                    await loadCommentsForVideo(selectedVideoId);
+                }
+                StudioApp.showToast("管理台数据已刷新", "success");
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            }
+        });
+
+        StudioApp.attachSessionUi();
+        StudioApp.mountLogout();
+        loadStats();
+        loadAdminVideos();
+    }());
+</script>
+</body>
+</html>
