@@ -15,7 +15,10 @@ public class Video {
     private String title;
     private String description;
     private Long uploaderId;
+    private String uploaderName;
+    private String category;
     private String videoUrl;
     private Date createTime;
     private Integer likeCount;
+    private Integer commentCount;
 }

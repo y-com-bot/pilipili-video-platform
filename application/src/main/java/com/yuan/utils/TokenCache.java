@@ -1,26 +1,26 @@
 package com.yuan.utils;
 
-import com.yuan.utils.AppLogger;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TokenCache {
+public final class TokenCache {
 
-    private static final ConcurrentHashMap<Long, String> activeUsers = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, String> ACTIVE_USERS = new ConcurrentHashMap<>();
+
+    private TokenCache() {
+    }
 
     public static void saveLoginStatus(Long userId, String token) {
-        activeUsers.put(userId, token);
-        AppLogger.getLogger().info("Active user saved: " + userId + " -> " + token);
+        ACTIVE_USERS.put(userId, token);
+        AppLogger.getLogger().info("Active user session saved: " + userId);
     }
 
     public static void clearLoginStatus(Long userId) {
-        activeUsers.remove(userId);
-        AppLogger.getLogger().info("用户ID: " + userId + " 已退出登录。");
+        ACTIVE_USERS.remove(userId);
+        AppLogger.getLogger().info("Active user session cleared: " + userId);
     }
 
     public static boolean isTokenValid(Long userId, String token) {
-        if(activeUsers.containsKey(userId) && activeUsers.get(userId).equals(token))
-            return true;
-        else
-            return false;
+        String cachedToken = ACTIVE_USERS.get(userId);
+        return cachedToken != null && cachedToken.equals(token);
     }
 }

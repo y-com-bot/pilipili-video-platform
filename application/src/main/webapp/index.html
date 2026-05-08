@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Studio | 创作者工作台</title>
+    <title>Video Studio | Feed 推流首页</title>
     <link rel="stylesheet" href="./assets/css/app.css">
 </head>
 <body>
@@ -13,12 +13,12 @@
             <div class="brand-mark">VS</div>
             <div class="brand-copy">
                 <strong>Video Studio</strong>
-                <span>轻量视频社区 · 两模块手写框架演示</span>
+                <span>推荐流 · 关注流 · Push 收件箱</span>
             </div>
         </a>
         <nav class="nav-links">
             <a class="nav-link is-active" href="./index.html">首页</a>
-            <a class="nav-link" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link" href="./video-detail.html?id=1&type=video">详情页</a>
             <a class="nav-link hidden" href="./admin.html" data-admin-only>管理台</a>
             <a class="nav-link" href="./auth.html" data-guest-only>登录 / 注册</a>
         </nav>
@@ -30,25 +30,24 @@
 
     <section class="hero">
         <article class="hero-panel">
-            <span class="hero-kicker">Studio Demo Build</span>
-            <h1>把内容发布、互动和管理，收进同一个工作室前台。</h1>
+            <span class="hero-kicker">Streaming Feed</span>
+            <h1>让首页同时支持推荐分发、关注拉取和发布后推送。</h1>
             <p>
-                这套前端直接对接你现在的 `application + framework` 两模块结构：
-                页面走静态资源，接口走你手写的 MVC 框架，登录态和管理员链路也都已经串起来了。
+                这里已经接上新的 Feed 模块。游客可以浏览推荐流，登录后可以切到关注流和 Push 收件箱，
+                也可以发布视频或动态，并对内容执行点赞、收藏、关注和评论。
             </p>
             <div class="hero-actions">
-                <a class="btn btn-primary" href="#publish-panel">发布新视频</a>
-                <a class="btn btn-secondary" href="./auth.html" data-guest-only>先去登录</a>
-                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>进入管理台</a>
+                <a class="btn btn-primary" href="#feed-panel">查看内容流</a>
+                <a class="btn btn-secondary" href="#publish-panel">发布内容</a>
             </div>
             <div class="hero-stats">
                 <div class="stat-chip">
-                    <strong id="hero-video-count">0</strong>
-                    <span>已加载视频</span>
+                    <strong id="hero-feed-count">0</strong>
+                    <span>当前流条目</span>
                 </div>
                 <div class="stat-chip">
                     <strong id="hero-like-count">0</strong>
-                    <span>累计点赞</span>
+                    <span>累计互动热度</span>
                 </div>
                 <div class="stat-chip">
                     <strong id="hero-health">...</strong>
@@ -59,76 +58,138 @@
 
         <aside class="hero-side">
             <section class="panel panel-dark">
-                <div class="eyebrow">Session</div>
-                <h2>当前访问状态</h2>
+                <div class="eyebrow">Feed Modes</div>
+                <h2>三种推流模式</h2>
                 <p class="muted">
-                    游客可以浏览视频和评论，登录后可以发布、评论、点赞。
-                    如果你是管理员账号，还可以进入审核台删除视频和评论。
+                    `recommend` 面向首页推荐，`pull` 在用户进入页面时拉取关注作者最新内容，
+                    `push` 展示作者发布后写入粉丝收件箱的投递结果。
                 </p>
                 <div class="tag-row">
-                    <span class="pill" data-session-label>游客模式</span>
-                    <span class="tag">JWT 鉴权</span>
-                    <span class="tag">框架拦截器</span>
+                    <span class="tag">分类分区</span>
+                    <span class="tag">游标分页</span>
+                    <span class="tag">关注 / 收藏</span>
                 </div>
             </section>
 
             <section class="panel">
-                <div class="eyebrow">Quick Access</div>
-                <h3>常用入口</h3>
-                <div class="stack-actions" style="margin-top: 14px;">
-                    <a class="btn btn-secondary" href="./auth.html">登录 / 注册</a>
-                    <a class="btn btn-secondary" href="./video-detail.html?id=1">看详情页</a>
-                    <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>内容审核</a>
+                <div class="eyebrow">Session</div>
+                <h3>当前身份</h3>
+                <p class="muted">
+                    登录态会被自动带到公开接口上，所以推荐流也能感知你是否已经关注作者或收藏内容。
+                </p>
+                <div class="tag-row">
+                    <span class="pill" data-session-label>游客模式</span>
+                    <span class="tag">JWT</span>
+                    <span class="tag">可选鉴权</span>
                 </div>
             </section>
         </aside>
     </section>
 
     <section class="content-grid columns-2">
-        <section class="panel">
+        <section id="feed-panel" class="panel">
             <div class="section-head">
                 <div>
                     <span class="section-kicker">Feed</span>
-                    <h2>视频广场</h2>
-                </div>
-                <div class="search-bar" style="min-width: min(100%, 320px);">
-                    <span>搜索</span>
-                    <input id="search-input" type="text" placeholder="按标题或描述过滤">
+                    <h2>内容流广场</h2>
                 </div>
             </div>
-            <div id="video-grid" class="video-grid"></div>
+            <div class="feed-toolbar">
+                <div class="tab-row mode-switch">
+                    <button class="tab-btn is-active" type="button" data-feed-mode="recommend">推荐流</button>
+                    <button class="tab-btn" type="button" data-feed-mode="pull">关注流</button>
+                    <button class="tab-btn" type="button" data-feed-mode="push">Push 收件箱</button>
+                </div>
+                <div class="feed-filter-row">
+                    <div class="search-bar">
+                        <span>搜索</span>
+                        <input id="search-input" type="text" placeholder="按标题、动态内容或作者搜索">
+                    </div>
+                    <div class="field compact-field">
+                        <label for="category-filter">分区</label>
+                        <select id="category-filter"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="tag-row" style="margin-bottom: 16px;">
+                <span class="pill" id="feed-mode-label">当前模式：推荐流</span>
+                <span class="tag" id="feed-tip">游客可直接浏览推荐流</span>
+            </div>
+            <div id="feed-grid" class="video-grid"></div>
+            <div class="inline-actions" style="margin-top: 18px;">
+                <button id="load-more-btn" class="btn btn-secondary" type="button">加载更多</button>
+            </div>
         </section>
 
-        <aside id="publish-panel" class="panel">
+        <aside id="publish-panel" class="panel panel-stack">
             <div class="section-head">
                 <div>
                     <span class="section-kicker">Publish</span>
-                    <h2>发布视频</h2>
+                    <h2>发布中心</h2>
                 </div>
             </div>
             <div class="status-banner">
                 <div>
                     <strong id="publish-status-title">需要登录后发布</strong>
-                    <span id="publish-status-text">当前为游客模式，你可以先浏览内容。</span>
+                    <span id="publish-status-text">登录后可以发布视频或动态，并触发 Push 投递。</span>
                 </div>
                 <a class="btn btn-secondary" href="./auth.html" data-guest-only>立即登录</a>
             </div>
-            <form id="publish-form" class="field-grid" style="margin-top: 18px;">
+
+            <div class="tab-row composer-switch" style="margin-top: 18px;">
+                <button class="tab-btn is-active" type="button" data-composer-target="video">发布视频</button>
+                <button class="tab-btn" type="button" data-composer-target="dynamic">发布动态</button>
+            </div>
+
+            <form id="video-form" class="field-grid composer-panel is-active" enctype="multipart/form-data">
                 <div class="field">
                     <label for="video-title">视频标题</label>
-                    <input id="video-title" name="title" type="text" maxlength="60" placeholder="例如：工作室 Demo Day 回顾">
+                    <input id="video-title" name="title" type="text" maxlength="60" placeholder="例如：探店夜宵地图">
                 </div>
                 <div class="field">
-                    <label for="video-description">内容介绍</label>
-                    <textarea id="video-description" name="description" placeholder="简单介绍一下视频亮点、演示内容和想表达的主题。"></textarea>
+                    <label for="video-category">视频分区</label>
+                    <input id="video-category" name="category" type="text" list="category-suggestions" placeholder="如：美食、探店、科技">
+                </div>
+                <div class="field">
+                    <label for="video-description">内容简介</label>
+                    <textarea id="video-description" name="description" placeholder="补充亮点、主题或更新说明"></textarea>
                 </div>
                 <div class="field">
                     <label for="video-url">视频地址</label>
-                    <input id="video-url" name="videoUrl" type="url" placeholder="填写 mp4 或可直接播放的链接">
-                    <span class="field-hint">后端目前是轻量演示版，所以这里采用“填写现成视频地址”的方式，而不是上传文件。</span>
+                    <input id="video-url" name="videoUrl" type="url" placeholder="填写可直接播放的视频链接">
                 </div>
-                <button class="btn btn-accent" type="submit">发布到广场</button>
+                <div class="field">
+                    <label for="video-file">本地视频文件</label>
+                    <input id="video-file" name="videoFile" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogg,.mov">
+                    <span class="field-hint">上传本地文件时会优先使用本地文件。</span>
+                </div>
+                <button class="btn btn-accent" type="submit">发布视频</button>
             </form>
+
+            <form id="dynamic-form" class="field-grid composer-panel">
+                <div class="field">
+                    <label for="dynamic-category">动态分区</label>
+                    <input id="dynamic-category" name="category" type="text" list="category-suggestions" placeholder="如：科技、校园、生活">
+                </div>
+                <div class="field">
+                    <label for="dynamic-content">动态内容</label>
+                    <textarea id="dynamic-content" name="content" placeholder="写下今天的更新、预告或观点"></textarea>
+                </div>
+                <div class="field">
+                    <label for="dynamic-media-url">媒体地址</label>
+                    <input id="dynamic-media-url" name="mediaUrl" type="url" placeholder="可选，填写图片或视频链接">
+                </div>
+                <button class="btn btn-accent" type="submit">发布动态</button>
+            </form>
+
+            <datalist id="category-suggestions">
+                <option value="美食"></option>
+                <option value="探店"></option>
+                <option value="科技"></option>
+                <option value="生活"></option>
+                <option value="游戏"></option>
+                <option value="校园"></option>
+            </datalist>
         </aside>
     </section>
 </div>
@@ -136,60 +197,168 @@
 <script src="./assets/js/app.js"></script>
 <script>
     (function () {
+        const DEFAULT_CATEGORIES = ["全部", "美食", "探店", "科技", "生活", "游戏", "校园"];
         const state = {
-            videos: []
+            mode: "recommend",
+            items: [],
+            cursorTime: null,
+            cursorId: null,
+            hasMore: true
         };
 
-        const videoGrid = document.getElementById("video-grid");
+        const feedGrid = document.getElementById("feed-grid");
         const searchInput = document.getElementById("search-input");
-        const publishForm = document.getElementById("publish-form");
+        const categoryFilter = document.getElementById("category-filter");
+        const loadMoreButton = document.getElementById("load-more-btn");
+        const videoForm = document.getElementById("video-form");
+        const dynamicForm = document.getElementById("dynamic-form");
 
-        function renderVideoList() {
-            const keyword = searchInput.value.trim().toLowerCase();
-            const filtered = state.videos.filter(function (video) {
-                const title = String(video.title || "").toLowerCase();
-                const description = String(video.description || "").toLowerCase();
-                return !keyword || title.includes(keyword) || description.includes(keyword);
-            });
-
-            document.getElementById("hero-video-count").textContent = filtered.length;
-            document.getElementById("hero-like-count").textContent = filtered.reduce(function (sum, item) {
-                return sum + Number(item.likeCount || 0);
-            }, 0);
-
-            if (!filtered.length) {
-                videoGrid.innerHTML = '<div class="empty-state">没有匹配到视频，换个关键词试试。</div>';
-                return;
-            }
-
-            videoGrid.innerHTML = filtered.map(function (video, index) {
-                return '' +
-                    '<article class="video-card">' +
-                    '  <div class="video-cover"><span>Scene ' + String(index + 1).padStart(2, "0") + '</span></div>' +
-                    '  <div class="video-body">' +
-                    '    <h3 class="video-title">' + StudioApp.escapeHtml(video.title || "未命名视频") + '</h3>' +
-                    '    <p class="video-desc">' + StudioApp.escapeHtml(video.description || "创作者暂时没有补充介绍。") + '</p>' +
-                    '    <div class="meta-row" style="margin-top: 14px;">' +
-                    '      <span class="tag">UP #' + StudioApp.escapeHtml(video.uploaderId || "-") + '</span>' +
-                    '      <span class="tag">点赞 ' + StudioApp.formatCount(video.likeCount) + '</span>' +
-                    '    </div>' +
-                    '    <div class="video-footer">' +
-                    '      <span class="metric">ID ' + StudioApp.escapeHtml(video.id) + '</span>' +
-                    '      <a class="btn btn-secondary" href="./video-detail.html?id=' + encodeURIComponent(video.id) + '">查看详情</a>' +
-                    '    </div>' +
-                    '  </div>' +
-                    '</article>';
-            }).join("");
+        function getSelectedCategory() {
+            const value = categoryFilter.value || "";
+            return value === "全部" ? "" : value;
         }
 
-        async function loadVideos() {
-            videoGrid.innerHTML = '<div class="empty-state">正在载入视频列表...</div>';
+        function currentFeedDescription() {
+            if (state.mode === "pull") {
+                return "当前模式：关注流";
+            }
+            if (state.mode === "push") {
+                return "当前模式：Push 收件箱";
+            }
+            return "当前模式：推荐流";
+        }
+
+        function currentFeedTip() {
+            if (state.mode === "pull") {
+                return "上线后拉取你关注作者的最新视频与动态";
+            }
+            if (state.mode === "push") {
+                return "作者发布成功后，内容会写入粉丝收件箱";
+            }
+            return "游客可直接浏览推荐流";
+        }
+
+        function syncFeedHeader() {
+            document.getElementById("feed-mode-label").textContent = currentFeedDescription();
+            document.getElementById("feed-tip").textContent = currentFeedTip();
+        }
+
+        function filteredItems() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            return state.items.filter(function (item) {
+                const haystack = [
+                    item.title,
+                    item.description,
+                    item.textContent,
+                    item.authorName,
+                    item.category
+                ].join(" ").toLowerCase();
+                return !keyword || haystack.includes(keyword);
+            });
+        }
+
+        function renderFeed() {
+            const items = filteredItems();
+            document.getElementById("hero-feed-count").textContent = items.length;
+            document.getElementById("hero-like-count").textContent = items.reduce(function (sum, item) {
+                return sum + Number(item.likeCount || 0) + Number(item.commentCount || 0);
+            }, 0);
+
+            if (!items.length) {
+                feedGrid.innerHTML = '<div class="empty-state">当前条件下还没有内容，试试切换模式或分区。</div>';
+            } else {
+                feedGrid.innerHTML = items.map(function (item, index) {
+                    const isVideo = item.contentType === "video";
+                    const title = isVideo ? (item.title || "未命名视频") : ("动态更新 #" + String(index + 1).padStart(2, "0"));
+                    const summary = isVideo ? (item.description || "作者还没有补充视频简介。") : (item.textContent || "作者发布了一条新动态。");
+                    const detailHref = "./video-detail.html?type=" + encodeURIComponent(item.contentType) + "&id=" + encodeURIComponent(item.contentId);
+                    return '' +
+                        '<article class="video-card story-card">' +
+                        '  <div class="video-cover"><span>' + (isVideo ? "VIDEO" : "DYNAMIC") + '</span></div>' +
+                        '  <div class="video-body">' +
+                        '    <div class="meta-row">' +
+                        '      <span class="tag">' + StudioApp.escapeHtml(item.category || "未分区") + '</span>' +
+                        '      <span class="tag">作者 ' + StudioApp.escapeHtml(item.authorName || ("#" + item.authorId)) + '</span>' +
+                        '    </div>' +
+                        '    <h3 class="video-title">' + StudioApp.escapeHtml(title) + '</h3>' +
+                        '    <p class="video-desc">' + StudioApp.escapeHtml(summary) + '</p>' +
+                        '    <div class="meta-row" style="margin-top: 14px;">' +
+                        '      <span class="tag">点赞 ' + StudioApp.formatCount(item.likeCount) + '</span>' +
+                        '      <span class="tag">评论 ' + StudioApp.formatCount(item.commentCount) + '</span>' +
+                        '    </div>' +
+                        '    <div class="video-footer">' +
+                        '      <span class="metric">' + StudioApp.escapeHtml(currentFeedDescription().replace("当前模式：", "")) + '</span>' +
+                        '      <div class="feed-actions">' +
+                        '        <button class="btn btn-ghost" type="button" data-follow-id="' + StudioApp.escapeHtml(item.authorId) + '">' + (item.followed ? "已关注" : "关注作者") + '</button>' +
+                        '        <button class="btn btn-secondary" type="button" data-favorite-type="' + (isVideo ? StudioApp.FAVORITE_TARGET.VIDEO : StudioApp.FAVORITE_TARGET.DYNAMIC) + '" data-favorite-id="' + StudioApp.escapeHtml(item.contentId) + '">' + (item.favorited ? "已收藏" : "收藏") + '</button>' +
+                        '        <a class="btn btn-secondary" href="' + detailHref + '">查看详情</a>' +
+                        '      </div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '</article>';
+                }).join("");
+            }
+
+            loadMoreButton.disabled = !state.hasMore;
+            loadMoreButton.textContent = state.hasMore ? "加载更多" : "没有更多内容了";
+        }
+
+        async function loadCategories() {
             try {
-                const videos = await StudioApp.request("api/videos/list");
-                state.videos = Array.isArray(videos) ? videos : [];
-                renderVideoList();
+                const remoteCategories = await StudioApp.request("api/feed/categories");
+                const values = DEFAULT_CATEGORIES.concat(Array.isArray(remoteCategories) ? remoteCategories : [])
+                    .filter(function (value, index, list) {
+                        return value && list.indexOf(value) === index;
+                    });
+                categoryFilter.innerHTML = values.map(function (value) {
+                    return '<option value="' + StudioApp.escapeHtml(value) + '">' + StudioApp.escapeHtml(value) + '</option>';
+                }).join("");
+                categoryFilter.value = "全部";
             } catch (error) {
-                videoGrid.innerHTML = '<div class="empty-state">视频加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+                categoryFilter.innerHTML = DEFAULT_CATEGORIES.map(function (value) {
+                    return '<option value="' + StudioApp.escapeHtml(value) + '">' + StudioApp.escapeHtml(value) + '</option>';
+                }).join("");
+                categoryFilter.value = "全部";
+            }
+        }
+
+        async function loadFeed(append) {
+            if (!append) {
+                state.cursorTime = null;
+                state.cursorId = null;
+                state.hasMore = true;
+                feedGrid.innerHTML = '<div class="empty-state">正在加载内容流...</div>';
+            }
+
+            const query = new URLSearchParams({
+                mode: state.mode,
+                pageSize: "10"
+            });
+            const category = getSelectedCategory();
+            if (category) {
+                query.set("category", category);
+            }
+            if (append && state.cursorTime && state.cursorId !== null) {
+                query.set("cursorTime", state.cursorTime);
+                query.set("cursorId", String(state.cursorId));
+            }
+
+            try {
+                const result = await StudioApp.request("api/feed/list?" + query.toString());
+                const items = Array.isArray(result.items) ? result.items : [];
+                state.items = append ? state.items.concat(items) : items;
+                state.cursorTime = result.nextCursorTime || null;
+                state.cursorId = result.nextCursorId ?? null;
+                state.hasMore = items.length > 0;
+                renderFeed();
+            } catch (error) {
+                if (!append) {
+                    state.items = [];
+                    feedGrid.innerHTML = '<div class="empty-state">加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+                }
+                state.hasMore = false;
+                loadMoreButton.disabled = true;
+                loadMoreButton.textContent = "加载失败";
             }
         }
 
@@ -206,54 +375,185 @@
             const loggedIn = StudioApp.isLoggedIn();
             document.getElementById("publish-status-title").textContent = loggedIn ? "已登录，可直接发布" : "需要登录后发布";
             document.getElementById("publish-status-text").textContent = loggedIn
-                ? "表单提交后会走你手写框架里的 /api/videos/publish 接口。"
-                : "当前为游客模式，你可以先浏览内容。";
-            Array.from(publishForm.elements).forEach(function (element) {
-                if (element.tagName === "BUTTON") {
-                    return;
-                }
-                element.disabled = !loggedIn;
+                ? "发布后会触发 Push 写入粉丝收件箱，首页也能切换到 Pull 模式查看。"
+                : "登录后可以发布视频或动态，并触发 Push 投递。";
+            [videoForm, dynamicForm].forEach(function (form) {
+                Array.from(form.elements).forEach(function (element) {
+                    if (element.tagName === "BUTTON") {
+                        return;
+                    }
+                    element.disabled = !loggedIn;
+                });
+                form.querySelector("button").disabled = !loggedIn;
             });
-            publishForm.querySelector("button").disabled = !loggedIn;
         }
 
-        publishForm.addEventListener("submit", async function (event) {
+        function activateMode(nextMode) {
+            if ((nextMode === "pull" || nextMode === "push") && !StudioApp.isLoggedIn()) {
+                StudioApp.showToast("登录后才能查看关注流和 Push 收件箱", "error");
+                return;
+            }
+            state.mode = nextMode;
+            document.querySelectorAll("[data-feed-mode]").forEach(function (button) {
+                button.classList.toggle("is-active", button.getAttribute("data-feed-mode") === nextMode);
+            });
+            syncFeedHeader();
+            loadFeed(false);
+        }
+
+        document.querySelectorAll("[data-feed-mode]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                activateMode(button.getAttribute("data-feed-mode"));
+            });
+        });
+
+        document.querySelectorAll("[data-composer-target]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const target = button.getAttribute("data-composer-target");
+                document.querySelectorAll("[data-composer-target]").forEach(function (node) {
+                    node.classList.toggle("is-active", node === button);
+                });
+                document.querySelectorAll(".composer-panel").forEach(function (panel) {
+                    panel.classList.toggle("is-active", panel.id === target + "-form");
+                });
+            });
+        });
+
+        searchInput.addEventListener("input", renderFeed);
+        categoryFilter.addEventListener("change", function () {
+            loadFeed(false);
+        });
+
+        loadMoreButton.addEventListener("click", function () {
+            if (state.hasMore) {
+                loadFeed(true);
+            }
+        });
+
+        feedGrid.addEventListener("click", async function (event) {
+            const followButton = event.target.closest("[data-follow-id]");
+            const favoriteButton = event.target.closest("[data-favorite-id]");
+
+            if (followButton) {
+                if (!StudioApp.requireLogin("auth.html")) {
+                    return;
+                }
+                followButton.disabled = true;
+                try {
+                    await StudioApp.request("api/social/follow/toggle", {
+                        method: "POST",
+                        form: {
+                            followeeId: followButton.getAttribute("data-follow-id")
+                        }
+                    });
+                    await loadFeed(false);
+                } catch (error) {
+                    StudioApp.showToast(error.message, "error");
+                } finally {
+                    followButton.disabled = false;
+                }
+                return;
+            }
+
+            if (favoriteButton) {
+                if (!StudioApp.requireLogin("auth.html")) {
+                    return;
+                }
+                favoriteButton.disabled = true;
+                try {
+                    await StudioApp.request("api/social/favorite/toggle", {
+                        method: "POST",
+                        form: {
+                            targetType: favoriteButton.getAttribute("data-favorite-type"),
+                            targetId: favoriteButton.getAttribute("data-favorite-id")
+                        }
+                    });
+                    await loadFeed(false);
+                } catch (error) {
+                    StudioApp.showToast(error.message, "error");
+                } finally {
+                    favoriteButton.disabled = false;
+                }
+            }
+        });
+
+        videoForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             if (!StudioApp.requireLogin("auth.html")) {
                 return;
             }
 
-            const submitButton = publishForm.querySelector("button");
+            const submitButton = videoForm.querySelector("button");
             submitButton.disabled = true;
             submitButton.textContent = "发布中...";
-
             try {
-                const formData = new FormData(publishForm);
-                await StudioApp.request("api/videos/publish", {
-                    method: "POST",
-                    form: {
-                        title: formData.get("title"),
-                        description: formData.get("description"),
-                        videoUrl: formData.get("videoUrl")
-                    }
-                });
-                publishForm.reset();
-                StudioApp.showToast("视频已发布到广场", "success");
-                await loadVideos();
+                const formData = new FormData(videoForm);
+                const selectedVideo = formData.get("videoFile");
+                const hasLocalVideo = selectedVideo instanceof File && selectedVideo.size > 0;
+                if (hasLocalVideo) {
+                    await StudioApp.request("api/videos/publish", {
+                        method: "POST",
+                        formData: formData
+                    });
+                } else {
+                    await StudioApp.request("api/videos/publish", {
+                        method: "POST",
+                        form: {
+                            title: formData.get("title"),
+                            description: formData.get("description"),
+                            category: formData.get("category"),
+                            videoUrl: formData.get("videoUrl")
+                        }
+                    });
+                }
+                videoForm.reset();
+                StudioApp.showToast("视频发布成功", "success");
+                await loadFeed(false);
             } catch (error) {
                 StudioApp.showToast(error.message, "error");
             } finally {
                 submitButton.disabled = false;
-                submitButton.textContent = "发布到广场";
+                submitButton.textContent = "发布视频";
             }
         });
 
-        searchInput.addEventListener("input", renderVideoList);
+        dynamicForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+
+            const submitButton = dynamicForm.querySelector("button");
+            submitButton.disabled = true;
+            submitButton.textContent = "发布中...";
+            try {
+                const formData = new FormData(dynamicForm);
+                await StudioApp.request("api/dynamics/publish", {
+                    method: "POST",
+                    form: {
+                        category: formData.get("category"),
+                        content: formData.get("content"),
+                        mediaUrl: formData.get("mediaUrl")
+                    }
+                });
+                dynamicForm.reset();
+                StudioApp.showToast("动态发布成功", "success");
+                await loadFeed(false);
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "发布动态";
+            }
+        });
 
         StudioApp.attachSessionUi();
         StudioApp.mountLogout();
+        syncFeedHeader();
         syncPublishState();
-        loadVideos();
+        loadCategories().then(function () {
+            loadFeed(false);
+        });
         pingServer();
     }());
 </script>

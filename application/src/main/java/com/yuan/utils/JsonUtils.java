@@ -20,11 +20,23 @@ public final class JsonUtils {
                 .replace("\n", "\\n");
     }
 
+    public static String toJsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + escape(value) + "\"";
+    }
+
     public static String success(String message) {
-        return "{\"code\":200,\"success\":true,\"message\":\"" + escape(message) + "\"}";
+        return "{\"code\":200,\"success\":true,\"message\":" + toJsonString(message) + "}";
+    }
+
+    public static String successWithData(String message, String dataJson) {
+        return "{\"code\":200,\"success\":true,\"message\":" + toJsonString(message)
+                + ",\"data\":" + (dataJson == null ? "null" : dataJson) + "}";
     }
 
     public static String error(int code, String message) {
-        return "{\"code\":" + code + ",\"success\":false,\"message\":\"" + escape(message) + "\"}";
+        return "{\"code\":" + code + ",\"success\":false,\"message\":" + toJsonString(message) + "}";
     }
 }

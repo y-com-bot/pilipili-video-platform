@@ -4,13 +4,18 @@ import com.yuan.utils.AppLogger;
 import com.yuan.utils.MyDataSource;
 
 import java.lang.reflect.Field;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 public class BaseDAO {
-    public int update (String sql, Object ...args) {
+    public int update(String sql, Object... args) {
         Connection conn = null;
         PreparedStatement ps = null;
         try {
@@ -21,15 +26,42 @@ public class BaseDAO {
             }
             return ps.executeUpdate();
         } catch (SQLException e) {
-            AppLogger.getLogger().log(Level.SEVERE, "获取连接发生异常", e);
+            AppLogger.getLogger().log(Level.SEVERE, "Database update failed", e);
         } finally {
+            closeResource(null, ps, null);
             MyDataSource.releaseConnection(conn);
-            BaseDAO.closeResource(null, ps, null);
         }
         return 0;
     }
 
-    public <T> List<T> queryForList(Class<T> clazz, String sql,Object...args) {
+    public Long insertAndReturnId(String sql, Object... args) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = MyDataSource.getConnection();
+            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            for (int i = 0; i < args.length; i++) {
+                ps.setObject(i + 1, args[i]);
+            }
+            int rows = ps.executeUpdate();
+            if (rows <= 0) {
+                return null;
+            }
+            rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            AppLogger.getLogger().log(Level.SEVERE, "Insert and return id failed", e);
+        } finally {
+            closeResource(null, ps, rs);
+            MyDataSource.releaseConnection(conn);
+        }
+        return null;
+    }
+
+    public <T> List<T> queryForList(Class<T> clazz, String sql, Object... args) {
         Connection conn = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -51,7 +83,9 @@ public class BaseDAO {
 
                     Field field = clazz.getDeclaredField(columnName);
                     field.setAccessible(true);
-                    if (value != null && value.getClass() == java.time.LocalDateTime.class && field.getType() == java.util.Date.class) {
+                    if (value != null
+                            && value.getClass() == java.time.LocalDateTime.class
+                            && field.getType() == java.util.Date.class) {
                         value = java.sql.Timestamp.valueOf((java.time.LocalDateTime) value);
                     }
 
@@ -60,11 +94,11 @@ public class BaseDAO {
                 list.add(entity);
             }
         } catch (Exception e) {
-                AppLogger.getLogger().log(Level.SEVERE, "查询数据发生异常", e);
-                throw new RuntimeException("查询数据发生异常",e);
-        }finally{
+            AppLogger.getLogger().log(Level.SEVERE, "Query list failed", e);
+            throw new RuntimeException("Query list failed", e);
+        } finally {
+            closeResource(null, ps, rs);
             MyDataSource.releaseConnection(conn);
-            BaseDAO.closeResource(null,ps,rs);
         }
         return list;
     }
@@ -84,20 +118,28 @@ public class BaseDAO {
                 return rs.getObject(1);
             }
         } catch (SQLException e) {
-            AppLogger.getLogger().log(Level.SEVERE, "query single value failed", e);
+            AppLogger.getLogger().log(Level.SEVERE, "Query single value failed", e);
         } finally {
-            BaseDAO.closeResource(null, ps, rs);
+            closeResource(null, ps, rs);
+            MyDataSource.releaseConnection(conn);
         }
         return null;
     }
 
+    protected Connection getConnection() throws SQLException {
+        return MyDataSource.getConnection();
+    }
 
-    protected static void closeResource(Connection conn, PreparedStatement ps, java.sql.ResultSet rs ){
-        try{
-            if(ps != null) ps.close();
-            if(rs != null) rs.close();
-        }catch(SQLException e){
-            AppLogger.getLogger().log(Level.SEVERE,"关闭资源发生异常",e);
+    protected static void closeResource(Connection conn, PreparedStatement ps, ResultSet rs) {
+        try {
+            if (ps != null) {
+                ps.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+        } catch (SQLException e) {
+            AppLogger.getLogger().log(Level.SEVERE, "Close database resource failed", e);
         }
     }
 }

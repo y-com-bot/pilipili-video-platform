@@ -6,11 +6,11 @@ import com.yuan.dao.VideoDAO;
 import com.yuan.entity.Video;
 import com.yuan.exception.AppException;
 import com.yuan.utils.JsonUtils;
-import framework.springMVC.MyAutowired;
-import framework.springMVC.MyController;
-import framework.springMVC.MyRequestMapping;
-import framework.springMVC.MyRequestParam;
-import framework.springMVC.MyResponseBody;
+import springMVC.MyAutowired;
+import springMVC.MyController;
+import springMVC.MyRequestMapping;
+import springMVC.MyRequestParam;
+import springMVC.MyResponseBody;
 import java.util.List;
 
 @MyController

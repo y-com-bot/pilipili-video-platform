@@ -1,19 +1,17 @@
 package com.yuan.controller;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.yuan.exception.AppException;
 import com.yuan.service.UserService;
-import com.yuan.utils.JsonUtils;
-import com.yuan.utils.JwtUtils;
-import framework.springMVC.MyAutowired;
-import framework.springMVC.MyController;
-import framework.springMVC.MyRequestMapping;
-import framework.springMVC.MyRequestParam;
-import framework.springMVC.MyResponseBody;
+import jakarta.servlet.http.HttpServletRequest;
+import springMVC.MyAutowired;
+import springMVC.MyController;
+import springMVC.MyRequestMapping;
+import springMVC.MyRequestParam;
+import springMVC.MyResponseBody;
 
 @MyController
 @MyRequestMapping("/api/auth")
-public class LoginServlet {
+public class LoginServlet extends BaseApiController {
 
     @MyAutowired
     private UserService userService;
@@ -22,23 +20,32 @@ public class LoginServlet {
     @MyResponseBody
     public String login(@MyRequestParam("username") String username,
                         @MyRequestParam("password") String password) {
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            throw new AppException(400, "用户名和密码不能为空");
+        String safeUsername = trimToNull(username);
+        String safePassword = trimToNull(password);
+        if (safeUsername == null || safePassword == null) {
+            throw new AppException(400, "username and password are required");
         }
 
-        String result = userService.login(username.trim(), password);
-        if (!result.startsWith("SUCCESS:")) {
-            throw new AppException(400, result);
-        }
+        UserService.AuthSession session = userService.login(safeUsername, safePassword);
+        return toAuthJson("login success", session);
+    }
 
-        String token = result.substring("SUCCESS:".length());
-        DecodedJWT jwt = JwtUtils.verifyToken(token);
-        String role = jwt == null ? "user" : jwt.getClaim("role").asString();
-        Long userId = jwt == null ? null : jwt.getClaim("userId").asLong();
+    @MyRequestMapping("/refresh")
+    @MyResponseBody
+    public String refresh(HttpServletRequest request) {
+        String currentToken = trimToNull(request.getHeader("Authorization"));
+        UserService.AuthSession session = userService.refreshToken(currentToken);
+        return toAuthJson("token refreshed", session);
+    }
 
-        return "{\"code\":200,\"success\":true,\"message\":\"登录成功\","
-                + "\"token\":\"" + JsonUtils.escape(token) + "\","
-                + "\"role\":\"" + JsonUtils.escape(role) + "\","
-                + "\"userId\":" + (userId == null ? "null" : userId) + "}";
+    private String toAuthJson(String message, UserService.AuthSession session) {
+        return "{"
+                + "\"code\":200,"
+                + "\"success\":true,"
+                + "\"message\":" + jsonString(message) + ","
+                + "\"token\":" + jsonString(session.getToken()) + ","
+                + "\"role\":" + jsonString(session.getRole()) + ","
+                + "\"userId\":" + session.getUserId()
+                + "}";
     }
 }

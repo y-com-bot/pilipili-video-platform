@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Studio | 视频详情</title>
+    <title>Video Studio | 内容详情</title>
     <link rel="stylesheet" href="./assets/css/app.css">
 </head>
 <body>
@@ -13,12 +13,12 @@
             <div class="brand-mark">VS</div>
             <div class="brand-copy">
                 <strong>Video Studio</strong>
-                <span>内容详情 · 评论互动 · 点赞实验场</span>
+                <span>视频详情 · 动态详情 · 评论互动</span>
             </div>
         </a>
         <nav class="nav-links">
             <a class="nav-link" href="./index.html">首页</a>
-            <a class="nav-link is-active" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link is-active" href="./video-detail.html?id=1&type=video">详情页</a>
             <a class="nav-link hidden" href="./admin.html" data-admin-only>管理台</a>
             <a class="nav-link" href="./auth.html" data-guest-only>登录 / 注册</a>
         </nav>
@@ -32,39 +32,57 @@
         <div class="section-head">
             <div>
                 <span class="section-kicker">Detail</span>
-                <h2>视频详情页</h2>
+                <h2>内容详情页</h2>
             </div>
             <div class="inline-actions">
-                <a class="btn btn-secondary" href="./index.html">返回广场</a>
-                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>去审核台</a>
+                <a class="btn btn-secondary" href="./index.html">返回首页</a>
+                <a class="btn btn-secondary hidden" href="./admin.html" data-admin-only>进入管理台</a>
             </div>
         </div>
         <p class="muted">
-            这个页面会串起三个核心接口：`/api/videos/detail`、`/api/comments/list`、`/api/likes/toggle`。
-            你可以直接把它当成面试演示页，展示详情、评论和点赞链路已经联通。
+            这里同时支持视频和动态详情，也接入了评论、点赞、收藏、关注以及视频场景下的优惠券抢购能力。
         </p>
     </section>
 
     <section class="content-grid columns-2">
         <div>
-            <div class="video-stage">
+            <div class="content-stage">
                 <video id="detail-video" controls playsinline></video>
+                <div id="dynamic-preview" class="content-preview hidden"></div>
                 <div class="video-info">
                     <div class="tag-row" style="margin-bottom: 14px;">
-                        <span class="pill">视频 ID <span id="video-id">-</span></span>
-                        <span class="tag">UP 主 <span id="video-uploader">-</span></span>
+                        <span class="pill" id="content-type-label">内容</span>
+                        <span class="tag">作者 <span id="content-author">-</span></span>
+                        <span class="tag">分区 <span id="content-category">-</span></span>
                     </div>
-                    <h1 id="video-title" style="margin: 0 0 10px; font-family: Georgia, STZhongsong, serif;">加载中...</h1>
-                    <p id="video-description" class="muted">正在拉取视频详情。</p>
+                    <h1 id="content-title" style="margin: 0 0 10px; font-family: Georgia, STZhongsong, serif;">加载中...</h1>
+                    <p id="content-description" class="muted">正在拉取详情数据。</p>
                     <div class="video-footer" style="margin-top: 18px;">
-                        <span class="metric">当前点赞 <strong id="video-like-count">0</strong></span>
-                        <div class="inline-actions">
-                            <button id="video-like-btn" class="btn btn-primary" type="button">点赞这个视频</button>
-                            <a id="video-source-link" class="btn btn-ghost" href="#" target="_blank" rel="noopener">打开原视频地址</a>
-                        </div>
+                        <span class="metric">点赞 <strong id="content-like-count">0</strong></span>
+                        <span class="metric">评论 <strong id="content-comment-count">0</strong></span>
+                    </div>
+                    <div class="inline-actions" style="margin-top: 18px;">
+                        <button id="like-btn" class="btn btn-primary" type="button">点赞内容</button>
+                        <button id="favorite-btn" class="btn btn-secondary" type="button">收藏内容</button>
+                        <button id="follow-btn" class="btn btn-ghost" type="button">关注作者</button>
+                        <a id="source-link" class="btn btn-ghost" href="#" target="_blank" rel="noopener">打开资源地址</a>
                     </div>
                 </div>
             </div>
+
+            <section id="coupon-panel" class="panel" style="margin-top: 24px;">
+                <div class="section-head">
+                    <div>
+                        <span class="section-kicker">Coupon</span>
+                        <h2>限时优惠抢购</h2>
+                    </div>
+                    <span class="tag">实时库存 · 成功即发码</span>
+                </div>
+                <p id="coupon-panel-tip" class="muted">
+                    当前视频如果挂了优惠活动，这里会展示抢购时间、库存和领券入口。
+                </p>
+                <div id="coupon-list" class="coupon-list"></div>
+            </section>
         </div>
 
         <aside class="panel">
@@ -77,14 +95,14 @@
             <div class="status-banner" style="margin-bottom: 16px;">
                 <div>
                     <strong id="comment-status-title">游客可浏览评论</strong>
-                    <span id="comment-status-text">登录后即可参与讨论和点赞。</span>
+                    <span id="comment-status-text">登录后即可评论视频或动态，也可以点赞评论。</span>
                 </div>
                 <a class="btn btn-secondary" href="./auth.html" data-guest-only>去登录</a>
             </div>
             <form id="comment-form" class="field-grid">
                 <div class="field">
                     <label for="comment-content">评论内容</label>
-                    <textarea id="comment-content" name="content" placeholder="写下你对这个视频的看法吧。"></textarea>
+                    <textarea id="comment-content" name="content" placeholder="写下你的看法或补充信息"></textarea>
                 </div>
                 <button class="btn btn-accent" type="submit">发送评论</button>
             </form>
@@ -98,8 +116,8 @@
                 <h2>评论区</h2>
             </div>
             <div class="tag-row">
-                <span class="tag">按热度排序</span>
-                <span class="tag">评论也支持点赞</span>
+                <span class="tag">统一评论模型</span>
+                <span class="tag">评论支持点赞</span>
             </div>
         </div>
         <div id="comment-list" class="comment-list"></div>
@@ -110,57 +128,113 @@
 <script>
     (function () {
         const params = new URLSearchParams(window.location.search);
-        const videoId = params.get("id");
+        const contentId = params.get("id");
+        const contentType = (params.get("type") || "video").toLowerCase();
         const commentForm = document.getElementById("comment-form");
         const commentList = document.getElementById("comment-list");
-        const likeButton = document.getElementById("video-like-btn");
-        let currentVideo = null;
+        const likeButton = document.getElementById("like-btn");
+        const favoriteButton = document.getElementById("favorite-btn");
+        const followButton = document.getElementById("follow-btn");
+        const videoStage = document.getElementById("detail-video");
+        const dynamicPreview = document.getElementById("dynamic-preview");
+        const couponPanel = document.getElementById("coupon-panel");
+        const couponList = document.getElementById("coupon-list");
+        const couponPanelTip = document.getElementById("coupon-panel-tip");
 
-        if (!videoId) {
-            document.getElementById("video-title").textContent = "缺少视频 ID";
-            document.getElementById("video-description").textContent = "请从首页选择一个视频进入详情。";
+        let currentContent = null;
+        let couponRefreshTimer = null;
+
+        if (!contentId || (contentType !== "video" && contentType !== "dynamic")) {
+            document.getElementById("content-title").textContent = "缺少有效的内容参数";
+            document.getElementById("content-description").textContent = "请从首页进入某个视频或动态详情页。";
             likeButton.disabled = true;
+            favoriteButton.disabled = true;
+            followButton.disabled = true;
             commentForm.querySelector("button").disabled = true;
-            commentList.innerHTML = '<div class="empty-state">当前页面没有收到有效的视频编号。</div>';
+            commentList.innerHTML = '<div class="empty-state">当前页面没有拿到有效的内容编号。</div>';
+            couponPanel.classList.add("hidden");
             return;
+        }
+
+        function isVideo() {
+            return contentType === "video";
+        }
+
+        function commentTargetType() {
+            return isVideo() ? StudioApp.CONTENT_TARGET.VIDEO : StudioApp.CONTENT_TARGET.DYNAMIC;
+        }
+
+        function likeTargetType() {
+            return isVideo() ? StudioApp.LIKE_TARGET.VIDEO : StudioApp.LIKE_TARGET.DYNAMIC;
+        }
+
+        function favoriteTargetType() {
+            return isVideo() ? StudioApp.FAVORITE_TARGET.VIDEO : StudioApp.FAVORITE_TARGET.DYNAMIC;
         }
 
         function syncCommentState() {
             const loggedIn = StudioApp.isLoggedIn();
             document.getElementById("comment-status-title").textContent = loggedIn ? "已登录，可直接发表评论" : "游客可浏览评论";
             document.getElementById("comment-status-text").textContent = loggedIn
-                ? "发送后会立即命中 /api/comments/create，并重新刷新评论列表。"
-                : "登录后即可参与讨论和点赞。";
+                ? "评论会写入统一目标模型，视频和动态共用同一套评论能力。"
+                : "登录后即可评论视频或动态，也可以点赞评论。";
             commentForm.querySelector("textarea").disabled = !loggedIn;
             commentForm.querySelector("button").disabled = !loggedIn;
         }
 
+        function renderDynamicPreview(content) {
+            const mediaUrl = content.mediaUrl || "";
+            if (!mediaUrl) {
+                dynamicPreview.innerHTML = '<div class="detail-richtext">' + StudioApp.escapeHtml(content.content || "这条动态没有额外媒体资源。").replace(/\n/g, "<br>") + '</div>';
+                return;
+            }
+
+            const safeUrl = StudioApp.escapeHtml(mediaUrl);
+            if (/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i.test(mediaUrl)) {
+                dynamicPreview.innerHTML = '<img src="' + safeUrl + '" alt="动态图片">';
+                return;
+            }
+            if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaUrl)) {
+                dynamicPreview.innerHTML = '<video controls playsinline src="' + safeUrl + '"></video>';
+                return;
+            }
+            dynamicPreview.innerHTML = ''
+                + '<div class="detail-richtext">' + StudioApp.escapeHtml(content.content || "") + '</div>'
+                + '<a class="btn btn-secondary" href="' + safeUrl + '" target="_blank" rel="noopener">打开动态媒体</a>';
+        }
+
+        function applyActionState() {
+            likeButton.textContent = isVideo() ? "点赞视频" : "点赞动态";
+            favoriteButton.textContent = currentContent && currentContent.favorited ? "已收藏" : "收藏内容";
+            followButton.textContent = currentContent && currentContent.followed ? "已关注作者" : "关注作者";
+        }
+
         function renderComments(comments) {
             if (!comments.length) {
-                commentList.innerHTML = '<div class="empty-state">这个视频还没有评论，你可以来留下第一条。</div>';
+                commentList.innerHTML = '<div class="empty-state">这里还没有评论，来留下一条吧。</div>';
                 return;
             }
 
             commentList.innerHTML = comments.map(function (comment) {
-                return '' +
-                    '<article class="comment-card">' +
-                    '  <div class="comment-body">' +
-                    '    <div class="comment-author">' +
-                    '      <div class="avatar">U' + StudioApp.escapeHtml(comment.userId) + '</div>' +
-                    '      <div>' +
-                    '        <strong>用户 #' + StudioApp.escapeHtml(comment.userId) + '</strong>' +
-                    '        <div class="muted">评论 ID ' + StudioApp.escapeHtml(comment.id) + '</div>' +
-                    '      </div>' +
-                    '    </div>' +
-                    '    <p class="comment-text">' + StudioApp.escapeHtml(comment.content || "") + '</p>' +
-                    '    <div class="comment-footer">' +
-                    '      <span class="metric">赞同 ' + StudioApp.formatCount(comment.likeCount) + '</span>' +
-                    '      <div class="comment-toolbar">' +
-                    '        <button class="btn btn-secondary" type="button" data-like-comment="' + StudioApp.escapeHtml(comment.id) + '">给评论点赞</button>' +
-                    '      </div>' +
-                    '    </div>' +
-                    '  </div>' +
-                    '</article>';
+                return ''
+                    + '<article class="comment-card">'
+                    + '  <div class="comment-body">'
+                    + '    <div class="comment-author">'
+                    + '      <div class="avatar">U' + StudioApp.escapeHtml(comment.userId) + '</div>'
+                    + '      <div>'
+                    + '        <strong>用户 #' + StudioApp.escapeHtml(comment.userId) + '</strong>'
+                    + '        <div class="muted">评论 ID ' + StudioApp.escapeHtml(comment.id) + '</div>'
+                    + '      </div>'
+                    + '    </div>'
+                    + '    <p class="comment-text">' + StudioApp.escapeHtml(comment.content || "") + '</p>'
+                    + '    <div class="comment-footer">'
+                    + '      <span class="metric">点赞 ' + StudioApp.formatCount(comment.likeCount) + '</span>'
+                    + '      <div class="comment-toolbar">'
+                    + '        <button class="btn btn-secondary" type="button" data-like-comment="' + StudioApp.escapeHtml(comment.id) + '">点赞评论</button>'
+                    + '      </div>'
+                    + '    </div>'
+                    + '  </div>'
+                    + '</article>';
             }).join("");
 
             commentList.querySelectorAll("[data-like-comment]").forEach(function (button) {
@@ -188,27 +262,148 @@
             });
         }
 
-        async function loadVideoDetail() {
+        function renderCoupons(coupons) {
+            if (!isVideo()) {
+                couponPanel.classList.add("hidden");
+                return;
+            }
+
+            couponPanel.classList.remove("hidden");
+            if (!Array.isArray(coupons) || !coupons.length) {
+                couponPanelTip.textContent = "当前视频还没有配置优惠活动。";
+                couponList.innerHTML = '<div class="empty-state">博主暂时还没有挂券，稍后再来看看。</div>';
+                return;
+            }
+
+            couponPanelTip.textContent = "库存、时间窗口和领券状态会自动刷新，抢到后会立刻生成优惠券码。";
+            couponList.innerHTML = coupons.map(function (coupon) {
+                const codeBlock = coupon.alreadyClaimed
+                    ? '<div class="coupon-code">券码：' + StudioApp.escapeHtml(coupon.couponCode || "") + '</div>'
+                    : '';
+                const claimLabel = coupon.alreadyClaimed ? "已领取" : (coupon.canClaim ? "立即抢购" : coupon.statusText);
+                return ''
+                    + '<article class="coupon-card">'
+                    + '  <div class="coupon-card-head">'
+                    + '    <div>'
+                    + '      <div class="coupon-platform">' + StudioApp.escapeHtml(coupon.platformName || "优惠平台") + '</div>'
+                    + '      <h3>' + StudioApp.escapeHtml(coupon.title || "限时优惠") + '</h3>'
+                    + '    </div>'
+                    + '    <span class="pill">' + StudioApp.escapeHtml(coupon.statusText || "活动中") + '</span>'
+                    + '  </div>'
+                    + '  <div class="coupon-meta-row">'
+                    + '    <span class="tag">库存 ' + StudioApp.formatCount(coupon.availableStock) + ' / ' + StudioApp.formatCount(coupon.totalStock) + '</span>'
+                    + '    <span class="tag">开始 ' + StudioApp.escapeHtml(coupon.startTime || "--") + '</span>'
+                    + '    <span class="tag">结束 ' + StudioApp.escapeHtml(coupon.endTime || "--") + '</span>'
+                    + '  </div>'
+                    + '  <div class="coupon-actions">'
+                    + '    <button class="btn btn-accent" type="button" data-claim-coupon="' + StudioApp.escapeHtml(coupon.id) + '" ' + (!coupon.canClaim || coupon.alreadyClaimed ? "disabled" : "") + '>' + claimLabel + '</button>'
+                    + '    <a class="btn btn-secondary" href="' + StudioApp.escapeHtml(coupon.couponLink || "#") + '" target="_blank" rel="noopener">打开链接</a>'
+                    + '  </div>'
+                    + codeBlock
+                    + '</article>';
+            }).join("");
+
+            couponList.querySelectorAll("[data-claim-coupon]").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    if (!StudioApp.requireLogin("auth.html")) {
+                        return;
+                    }
+                    const activityId = button.getAttribute("data-claim-coupon");
+                    button.disabled = true;
+                    button.textContent = "抢购中...";
+                    try {
+                        const result = await StudioApp.request("api/coupons/claim", {
+                            method: "POST",
+                            form: {
+                                activityId: activityId
+                            }
+                        });
+                        StudioApp.showToast((result.message || "抢购成功") + "，券码：" + (result.couponCode || "--"), "success");
+                        await loadCoupons(false);
+                    } catch (error) {
+                        StudioApp.showToast(error.message, "error");
+                        await loadCoupons(false);
+                    }
+                });
+            });
+        }
+
+        async function loadCoupons(silent) {
+            if (!isVideo()) {
+                couponPanel.classList.add("hidden");
+                return;
+            }
+            if (!silent) {
+                couponList.innerHTML = '<div class="empty-state">正在拉取优惠活动...</div>';
+            }
             try {
-                currentVideo = await StudioApp.request("api/videos/detail?id=" + encodeURIComponent(videoId));
-                document.getElementById("video-id").textContent = currentVideo.id || "-";
-                document.getElementById("video-uploader").textContent = currentVideo.uploaderId || "-";
-                document.getElementById("video-title").textContent = currentVideo.title || "未命名视频";
-                document.getElementById("video-description").textContent = currentVideo.description || "创作者还没有填写介绍。";
-                document.getElementById("video-like-count").textContent = StudioApp.formatCount(currentVideo.likeCount);
-                document.getElementById("detail-video").src = currentVideo.videoUrl || "";
-                document.getElementById("video-source-link").href = currentVideo.videoUrl || "#";
+                const coupons = await StudioApp.request("api/coupons/video?videoId=" + encodeURIComponent(contentId));
+                renderCoupons(Array.isArray(coupons) ? coupons : []);
             } catch (error) {
-                document.getElementById("video-title").textContent = "视频加载失败";
-                document.getElementById("video-description").textContent = error.message;
+                couponPanel.classList.remove("hidden");
+                couponPanelTip.textContent = "优惠模块暂时不可用。";
+                couponList.innerHTML = '<div class="empty-state">优惠活动加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        function startCouponRefresh() {
+            if (!isVideo()) {
+                return;
+            }
+            if (couponRefreshTimer) {
+                window.clearInterval(couponRefreshTimer);
+            }
+            couponRefreshTimer = window.setInterval(function () {
+                loadCoupons(true);
+            }, 10000);
+        }
+
+        async function loadContentDetail() {
+            const endpoint = isVideo() ? "api/videos/detail?id=" : "api/dynamics/detail?id=";
+            try {
+                currentContent = await StudioApp.request(endpoint + encodeURIComponent(contentId));
+                document.getElementById("content-type-label").textContent = isVideo() ? "视频" : "动态";
+                document.getElementById("content-author").textContent = currentContent.authorName || currentContent.uploaderName || ("#" + (currentContent.authorId || currentContent.uploaderId));
+                document.getElementById("content-category").textContent = currentContent.category || "未分区";
+                document.getElementById("content-title").textContent = isVideo() ? (currentContent.title || "未命名视频") : ("动态 #" + currentContent.id);
+                document.getElementById("content-description").textContent = isVideo()
+                    ? (currentContent.description || "作者还没有补充视频简介。")
+                    : (currentContent.content || "作者发布了一条新动态。");
+                document.getElementById("content-like-count").textContent = StudioApp.formatCount(currentContent.likeCount);
+                document.getElementById("content-comment-count").textContent = StudioApp.formatCount(currentContent.commentCount);
+
+                if (isVideo()) {
+                    videoStage.classList.remove("hidden");
+                    dynamicPreview.classList.add("hidden");
+                    videoStage.src = currentContent.videoUrl || "";
+                    document.getElementById("source-link").href = currentContent.videoUrl || "#";
+                    await loadCoupons(false);
+                } else {
+                    videoStage.classList.add("hidden");
+                    dynamicPreview.classList.remove("hidden");
+                    renderDynamicPreview(currentContent);
+                    document.getElementById("source-link").href = currentContent.mediaUrl || "#";
+                    couponPanel.classList.add("hidden");
+                }
+
+                applyActionState();
+            } catch (error) {
+                document.getElementById("content-title").textContent = "内容加载失败";
+                document.getElementById("content-description").textContent = error.message;
                 likeButton.disabled = true;
+                favoriteButton.disabled = true;
+                followButton.disabled = true;
+                couponPanel.classList.add("hidden");
             }
         }
 
         async function loadComments() {
-            commentList.innerHTML = '<div class="empty-state">正在载入评论...</div>';
+            commentList.innerHTML = '<div class="empty-state">正在加载评论...</div>';
             try {
-                const comments = await StudioApp.request("api/comments/list?videoId=" + encodeURIComponent(videoId));
+                const query = isVideo()
+                    ? "videoId=" + encodeURIComponent(contentId)
+                    : "targetType=" + encodeURIComponent(commentTargetType()) + "&targetId=" + encodeURIComponent(contentId);
+                const comments = await StudioApp.request("api/comments/list?" + query);
                 renderComments(Array.isArray(comments) ? comments : []);
             } catch (error) {
                 commentList.innerHTML = '<div class="empty-state">评论加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
@@ -225,17 +420,63 @@
                 await StudioApp.request("api/likes/toggle", {
                     method: "POST",
                     form: {
-                        targetType: StudioApp.LIKE_TARGET.VIDEO,
-                        targetId: videoId
+                        targetType: likeTargetType(),
+                        targetId: contentId
                     }
                 });
-                StudioApp.showToast("视频点赞状态已更新", "success");
-                await loadVideoDetail();
+                StudioApp.showToast("点赞状态已更新", "success");
+                await loadContentDetail();
             } catch (error) {
                 StudioApp.showToast(error.message, "error");
             } finally {
                 likeButton.disabled = false;
-                likeButton.textContent = "点赞这个视频";
+                applyActionState();
+            }
+        });
+
+        favoriteButton.addEventListener("click", async function () {
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+            favoriteButton.disabled = true;
+            try {
+                await StudioApp.request("api/social/favorite/toggle", {
+                    method: "POST",
+                    form: {
+                        targetType: favoriteTargetType(),
+                        targetId: contentId
+                    }
+                });
+                await loadContentDetail();
+                StudioApp.showToast("收藏状态已更新", "success");
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                favoriteButton.disabled = false;
+            }
+        });
+
+        followButton.addEventListener("click", async function () {
+            if (!StudioApp.requireLogin("auth.html")) {
+                return;
+            }
+            if (!currentContent) {
+                return;
+            }
+            followButton.disabled = true;
+            try {
+                await StudioApp.request("api/social/follow/toggle", {
+                    method: "POST",
+                    form: {
+                        followeeId: currentContent.authorId || currentContent.uploaderId
+                    }
+                });
+                await loadContentDetail();
+                StudioApp.showToast("关注状态已更新", "success");
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                followButton.disabled = false;
             }
         });
 
@@ -253,14 +494,21 @@
             try {
                 await StudioApp.request("api/comments/create", {
                     method: "POST",
-                    form: {
-                        videoId: videoId,
-                        content: textarea.value
-                    }
+                    form: isVideo()
+                        ? {
+                            videoId: contentId,
+                            content: textarea.value
+                        }
+                        : {
+                            targetType: commentTargetType(),
+                            targetId: contentId,
+                            content: textarea.value
+                        }
                 });
                 textarea.value = "";
                 StudioApp.showToast("评论发布成功", "success");
                 await loadComments();
+                await loadContentDetail();
             } catch (error) {
                 StudioApp.showToast(error.message, "error");
             } finally {
@@ -272,7 +520,8 @@
         StudioApp.attachSessionUi();
         StudioApp.mountLogout();
         syncCommentState();
-        loadVideoDetail();
+        startCouponRefresh();
+        loadContentDetail();
         loadComments();
     }());
 </script>

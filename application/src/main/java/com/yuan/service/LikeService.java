@@ -2,8 +2,8 @@ package com.yuan.service;
 
 import com.yuan.dao.LikeDAO;
 import com.yuan.exception.AppException;
-import framework.springMVC.MyAutowired;
-import framework.springMVC.MyService;
+import springMVC.MyAutowired;
+import springMVC.MyService;
 
 @MyService
 public class LikeService {

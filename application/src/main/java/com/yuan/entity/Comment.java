@@ -11,6 +11,8 @@ import java.util.Date;
 @NoArgsConstructor
 public class Comment {
     private Long id;
+    private Integer targetType;
+    private Long targetId;
     private Long videoId;
     private Long userId;
     private String content;

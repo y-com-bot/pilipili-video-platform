@@ -559,6 +559,80 @@ video {
     padding: 6px 4px;
 }
 
+.feed-toolbar,
+.panel-stack {
+    display: grid;
+    gap: 16px;
+}
+
+.feed-filter-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+    gap: 12px;
+    align-items: end;
+}
+
+.compact-field {
+    gap: 6px;
+}
+
+.compact-field label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.story-card .video-desc {
+    min-height: 4.8em;
+}
+
+.feed-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.composer-panel {
+    display: none;
+}
+
+.composer-panel.is-active {
+    display: grid;
+}
+
+.content-stage {
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    background: #091522;
+    box-shadow: var(--shadow);
+}
+
+.content-stage video {
+    width: 100%;
+    min-height: 280px;
+    background: #08111b;
+}
+
+.content-preview {
+    padding: 24px;
+    background:
+        radial-gradient(circle at top right, rgba(196, 91, 49, 0.16), transparent 30%),
+        linear-gradient(145deg, rgba(8, 24, 38, 0.96), rgba(14, 42, 58, 0.94));
+    color: #f6f3ee;
+}
+
+.content-preview img,
+.content-preview video {
+    width: 100%;
+    border-radius: var(--radius-lg);
+}
+
+.detail-richtext {
+    line-height: 1.9;
+    white-space: pre-wrap;
+}
+
 .video-stage {
     border-radius: var(--radius-xl);
     overflow: hidden;
@@ -756,6 +830,80 @@ video {
     background: rgba(186, 59, 70, 0.94);
 }
 
+.coupon-list {
+    display: grid;
+    gap: 14px;
+}
+
+.coupon-card {
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(17, 32, 51, 0.08);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 247, 233, 0.94)),
+        rgba(255, 255, 255, 0.72);
+    padding: 18px;
+}
+
+.coupon-card h3 {
+    margin: 6px 0 0;
+    font-size: 20px;
+    font-family: "Georgia", "STZhongsong", serif;
+}
+
+.coupon-card-head,
+.coupon-meta-row,
+.coupon-actions,
+.coupon-adjust-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.coupon-platform {
+    color: var(--brand-strong);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.coupon-meta-row {
+    margin-top: 14px;
+    justify-content: flex-start;
+}
+
+.coupon-actions,
+.coupon-adjust-row {
+    margin-top: 16px;
+}
+
+.coupon-code {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: rgba(15, 139, 141, 0.1);
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.coupon-adjust-input {
+    flex: 1 1 220px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid rgba(17, 32, 51, 0.12);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--text);
+    outline: none;
+}
+
+.coupon-adjust-input:focus {
+    border-color: rgba(15, 139, 141, 0.58);
+    box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.12);
+}
+
 @keyframes toast-rise {
     from {
         opacity: 0;
@@ -781,6 +929,10 @@ video {
     .hero-stats,
     .field-grid.two-col,
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .feed-filter-row {
         grid-template-columns: 1fr;
     }
 

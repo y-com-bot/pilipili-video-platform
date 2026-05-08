@@ -9,8 +9,13 @@
 
     <servlet>
         <servlet-name>myDispatcherServlet</servlet-name>
-        <servlet-class>framework.springMVC.MyDispatcherServlet</servlet-class>
+        <servlet-class>springMVC.MyDispatcherServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
+        <multipart-config>
+            <max-file-size>209715200</max-file-size>
+            <max-request-size>220200960</max-request-size>
+            <file-size-threshold>1048576</file-size-threshold>
+        </multipart-config>
     </servlet>
 
     <servlet-mapping>

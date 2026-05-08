@@ -13,12 +13,12 @@
             <div class="brand-mark">VS</div>
             <div class="brand-copy">
                 <strong>Video Studio</strong>
-                <span>管理员后台 · 内容与互动审核</span>
+                <span>管理员后台 · 内容审核 · 优惠活动配置</span>
             </div>
         </a>
         <nav class="nav-links">
             <a class="nav-link" href="./index.html">首页</a>
-            <a class="nav-link" href="./video-detail.html?id=1">详情页</a>
+            <a class="nav-link" href="./video-detail.html?id=1&type=video">详情页</a>
             <a class="nav-link is-active" href="./admin.html">管理台</a>
         </nav>
         <div class="nav-actions">
@@ -31,7 +31,7 @@
         <div class="section-head">
             <div>
                 <span class="section-kicker">Moderation</span>
-                <h2>工作室审核台</h2>
+                <h2>工作室管理台</h2>
             </div>
             <div class="inline-actions">
                 <button id="refresh-admin" class="btn btn-secondary" type="button">刷新数据</button>
@@ -39,8 +39,7 @@
             </div>
         </div>
         <p class="muted">
-            这里直接串起管理员接口 `/api/admin/list`、`/api/admin/stats`、`/api/admin/deleteVideo`、
-            `/api/admin/deleteComment`，同时借用普通评论接口拉取指定视频的评论做审核。
+            这里可以审核视频和评论，也可以为指定视频创建优惠券活动，并在抢购期间动态调整库存。
         </p>
     </section>
 
@@ -58,7 +57,7 @@
                     <span class="section-kicker">Videos</span>
                     <h2>视频审核列表</h2>
                 </div>
-                <span class="tag">点击某条视频后加载对应评论</span>
+                <span class="tag">选择视频后可审核评论和配置优惠券</span>
             </div>
             <div id="admin-video-list" class="admin-list"></div>
         </section>
@@ -73,10 +72,80 @@
             <div id="selected-video-tip" class="status-banner" style="margin-bottom: 16px;">
                 <div>
                     <strong>尚未选择视频</strong>
-                    <span>点击左侧某个视频后，这里会显示它的评论列表。</span>
+                    <span>点击左侧某个视频后，这里会展示该视频下的评论列表。</span>
                 </div>
             </div>
             <div id="admin-comment-list" class="admin-list"></div>
+        </aside>
+    </section>
+
+    <section class="content-grid columns-2" style="margin-top: 24px;">
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Coupon Setup</span>
+                    <h2>创建优惠活动</h2>
+                </div>
+                <span class="tag" id="coupon-video-tag">未绑定视频</span>
+            </div>
+            <form id="coupon-form" class="field-grid">
+                <div class="field">
+                    <label for="coupon-video-id">视频 ID</label>
+                    <input id="coupon-video-id" name="videoId" type="number" min="1" placeholder="先点选左侧视频，或手动输入视频 ID">
+                </div>
+                <div class="field-grid two-col">
+                    <div class="field">
+                        <label for="coupon-title">活动标题</label>
+                        <input id="coupon-title" name="title" type="text" maxlength="120" placeholder="例如：直播间专属 5 折券">
+                    </div>
+                    <div class="field">
+                        <label for="coupon-platform">平台名称</label>
+                        <input id="coupon-platform" name="platformName" type="text" maxlength="60" placeholder="例如：某夕夕 / 某东">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="coupon-link">优惠链接</label>
+                    <input id="coupon-link" name="couponLink" type="url" placeholder="填写抢购落地页链接">
+                </div>
+                <div class="field-grid two-col">
+                    <div class="field">
+                        <label for="coupon-prefix">券码前缀</label>
+                        <input id="coupon-prefix" name="couponPrefix" type="text" maxlength="8" placeholder="例如：LIVE / FOOD">
+                    </div>
+                    <div class="field">
+                        <label for="coupon-stock">初始库存</label>
+                        <input id="coupon-stock" name="stock" type="number" min="1" placeholder="例如：100">
+                    </div>
+                </div>
+                <div class="field-grid two-col">
+                    <div class="field">
+                        <label for="coupon-start-time">开始时间</label>
+                        <input id="coupon-start-time" name="startTime" type="datetime-local">
+                    </div>
+                    <div class="field">
+                        <label for="coupon-end-time">结束时间</label>
+                        <input id="coupon-end-time" name="endTime" type="datetime-local">
+                    </div>
+                </div>
+                <button class="btn btn-accent" type="submit">创建活动</button>
+            </form>
+        </section>
+
+        <aside class="panel">
+            <div class="section-head">
+                <div>
+                    <span class="section-kicker">Coupon Ops</span>
+                    <h2>活动库存管理</h2>
+                </div>
+                <span class="tag">支持正负库存调整</span>
+            </div>
+            <div id="coupon-activity-tip" class="status-banner" style="margin-bottom: 16px;">
+                <div>
+                    <strong>尚未选择视频</strong>
+                    <span>选择视频后，这里会显示它的优惠活动和当前库存。</span>
+                </div>
+            </div>
+            <div id="coupon-activity-list" class="coupon-list"></div>
         </aside>
     </section>
 </div>
@@ -87,10 +156,28 @@
         const videoListNode = document.getElementById("admin-video-list");
         const commentListNode = document.getElementById("admin-comment-list");
         const selectedVideoTip = document.getElementById("selected-video-tip");
+        const couponActivityTip = document.getElementById("coupon-activity-tip");
+        const couponActivityList = document.getElementById("coupon-activity-list");
+        const couponForm = document.getElementById("coupon-form");
+        const couponVideoIdInput = document.getElementById("coupon-video-id");
+        const couponVideoTag = document.getElementById("coupon-video-tag");
+
         let selectedVideoId = null;
 
         if (!StudioApp.requireAdmin("index.html")) {
             return;
+        }
+
+        function applySelectedVideo(videoId, title) {
+            selectedVideoId = videoId;
+            couponVideoIdInput.value = videoId || "";
+            couponVideoTag.textContent = videoId ? ("当前视频 #" + videoId) : "未绑定视频";
+            selectedVideoTip.innerHTML = videoId
+                ? '<div><strong>正在审核视频 #' + StudioApp.escapeHtml(videoId) + '</strong><span>' + StudioApp.escapeHtml(title || "已加载该视频的评论和优惠活动。") + '</span></div>'
+                : '<div><strong>尚未选择视频</strong><span>点击左侧某个视频后，这里会展示该视频下的评论列表。</span></div>';
+            couponActivityTip.innerHTML = videoId
+                ? '<div><strong>视频 #' + StudioApp.escapeHtml(videoId) + ' 的优惠活动</strong><span>你可以新增活动，或在抢购中直接增减库存。</span></div>'
+                : '<div><strong>尚未选择视频</strong><span>选择视频后，这里会显示它的优惠活动和当前库存。</span></div>';
         }
 
         async function loadStats() {
@@ -104,13 +191,11 @@
         function bindVideoActions() {
             videoListNode.querySelectorAll("[data-select-video]").forEach(function (button) {
                 button.addEventListener("click", function () {
-                    selectedVideoId = button.getAttribute("data-select-video");
-                    selectedVideoTip.innerHTML = '' +
-                        '<div>' +
-                        '  <strong>正在审核视频 #' + StudioApp.escapeHtml(selectedVideoId) + '</strong>' +
-                        '  <span>右侧显示的是这个视频下的评论列表。</span>' +
-                        '</div>';
-                    loadCommentsForVideo(selectedVideoId);
+                    const videoId = button.getAttribute("data-select-video");
+                    const title = button.getAttribute("data-video-title");
+                    applySelectedVideo(videoId, title);
+                    loadCommentsForVideo(videoId);
+                    loadCouponsForVideo(videoId);
                 });
             });
 
@@ -131,10 +216,9 @@
                         });
                         StudioApp.showToast("视频删除成功", "success");
                         if (selectedVideoId === videoId) {
-                            selectedVideoId = null;
+                            applySelectedVideo(null);
                             commentListNode.innerHTML = "";
-                            selectedVideoTip.innerHTML = '' +
-                                '<div><strong>尚未选择视频</strong><span>点击左侧某个视频后，这里会显示它的评论列表。</span></div>';
+                            couponActivityList.innerHTML = "";
                         }
                         await loadAdminVideos();
                         await loadStats();
@@ -157,25 +241,25 @@
                 }
 
                 videoListNode.innerHTML = videos.map(function (video) {
-                    return '' +
-                        '<article class="admin-item">' +
-                        '  <div class="admin-body">' +
-                        '    <h3 class="admin-title">' + StudioApp.escapeHtml(video.title || "未命名视频") + '</h3>' +
-                        '    <p class="admin-desc">' + StudioApp.escapeHtml(video.description || "创作者未填写描述。") + '</p>' +
-                        '    <div class="tag-row" style="margin-top: 14px;">' +
-                        '      <span class="tag">ID ' + StudioApp.escapeHtml(video.id) + '</span>' +
-                        '      <span class="tag">UP #' + StudioApp.escapeHtml(video.uploaderId) + '</span>' +
-                        '      <span class="tag">赞 ' + StudioApp.formatCount(video.likeCount) + '</span>' +
-                        '    </div>' +
-                        '    <div class="admin-footer">' +
-                        '      <button class="btn btn-secondary" type="button" data-select-video="' + StudioApp.escapeHtml(video.id) + '">查看评论</button>' +
-                        '      <div class="inline-actions">' +
-                        '        <a class="btn btn-ghost" href="./video-detail.html?id=' + encodeURIComponent(video.id) + '">打开详情</a>' +
-                        '        <button class="btn btn-danger" type="button" data-delete-video="' + StudioApp.escapeHtml(video.id) + '">删除视频</button>' +
-                        '      </div>' +
-                        '    </div>' +
-                        '  </div>' +
-                        '</article>';
+                    return ''
+                        + '<article class="admin-item">'
+                        + '  <div class="admin-body">'
+                        + '    <h3 class="admin-title">' + StudioApp.escapeHtml(video.title || "未命名视频") + '</h3>'
+                        + '    <p class="admin-desc">' + StudioApp.escapeHtml(video.description || "创作者未填写描述。") + '</p>'
+                        + '    <div class="tag-row" style="margin-top: 14px;">'
+                        + '      <span class="tag">ID ' + StudioApp.escapeHtml(video.id) + '</span>'
+                        + '      <span class="tag">UP #' + StudioApp.escapeHtml(video.uploaderId) + '</span>'
+                        + '      <span class="tag">赞 ' + StudioApp.formatCount(video.likeCount) + '</span>'
+                        + '    </div>'
+                        + '    <div class="admin-footer">'
+                        + '      <button class="btn btn-secondary" type="button" data-select-video="' + StudioApp.escapeHtml(video.id) + '" data-video-title="' + StudioApp.escapeHtml(video.title || "") + '">管理该视频</button>'
+                        + '      <div class="inline-actions">'
+                        + '        <a class="btn btn-ghost" href="./video-detail.html?id=' + encodeURIComponent(video.id) + '&type=video">打开详情</a>'
+                        + '        <button class="btn btn-danger" type="button" data-delete-video="' + StudioApp.escapeHtml(video.id) + '">删除视频</button>'
+                        + '      </div>'
+                        + '    </div>'
+                        + '  </div>'
+                        + '</article>';
                 }).join("");
 
                 bindVideoActions();
@@ -224,21 +308,21 @@
                 }
 
                 commentListNode.innerHTML = comments.map(function (comment) {
-                    return '' +
-                        '<article class="admin-item">' +
-                        '  <div class="admin-body">' +
-                        '    <h3 class="admin-title">评论 #' + StudioApp.escapeHtml(comment.id) + '</h3>' +
-                        '    <p class="admin-desc">' + StudioApp.escapeHtml(comment.content || "") + '</p>' +
-                        '    <div class="tag-row" style="margin-top: 14px;">' +
-                        '      <span class="tag">作者 #' + StudioApp.escapeHtml(comment.userId) + '</span>' +
-                        '      <span class="tag">点赞 ' + StudioApp.formatCount(comment.likeCount) + '</span>' +
-                        '    </div>' +
-                        '    <div class="admin-footer">' +
-                        '      <span class="metric">所属视频 ' + StudioApp.escapeHtml(comment.videoId) + '</span>' +
-                        '      <button class="btn btn-danger" type="button" data-delete-comment="' + StudioApp.escapeHtml(comment.id) + '">删除评论</button>' +
-                        '    </div>' +
-                        '  </div>' +
-                        '</article>';
+                    return ''
+                        + '<article class="admin-item">'
+                        + '  <div class="admin-body">'
+                        + '    <h3 class="admin-title">评论 #' + StudioApp.escapeHtml(comment.id) + '</h3>'
+                        + '    <p class="admin-desc">' + StudioApp.escapeHtml(comment.content || "") + '</p>'
+                        + '    <div class="tag-row" style="margin-top: 14px;">'
+                        + '      <span class="tag">作者 #' + StudioApp.escapeHtml(comment.userId) + '</span>'
+                        + '      <span class="tag">点赞 ' + StudioApp.formatCount(comment.likeCount) + '</span>'
+                        + '    </div>'
+                        + '    <div class="admin-footer">'
+                        + '      <span class="metric">所属视频 #' + StudioApp.escapeHtml(comment.videoId) + '</span>'
+                        + '      <button class="btn btn-danger" type="button" data-delete-comment="' + StudioApp.escapeHtml(comment.id) + '">删除评论</button>'
+                        + '    </div>'
+                        + '  </div>'
+                        + '</article>';
                 }).join("");
 
                 bindCommentActions();
@@ -247,12 +331,114 @@
             }
         }
 
+        function bindCouponActions() {
+            couponActivityList.querySelectorAll("[data-adjust-coupon]").forEach(function (button) {
+                button.addEventListener("click", async function () {
+                    const activityId = button.getAttribute("data-adjust-coupon");
+                    const input = couponActivityList.querySelector('[data-stock-input="' + activityId + '"]');
+                    const delta = input ? input.value : "";
+                    button.disabled = true;
+                    try {
+                        await StudioApp.request("api/admin/coupons/adjustStock", {
+                            method: "POST",
+                            form: {
+                                activityId: activityId,
+                                delta: delta
+                            }
+                        });
+                        StudioApp.showToast("库存调整成功", "success");
+                        if (selectedVideoId) {
+                            await loadCouponsForVideo(selectedVideoId);
+                        }
+                    } catch (error) {
+                        StudioApp.showToast(error.message, "error");
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function loadCouponsForVideo(videoId) {
+            couponActivityList.innerHTML = '<div class="empty-state">正在加载优惠活动...</div>';
+            try {
+                const activities = await StudioApp.request("api/admin/coupons/listByVideo?videoId=" + encodeURIComponent(videoId));
+                if (!Array.isArray(activities) || !activities.length) {
+                    couponActivityList.innerHTML = '<div class="empty-state">该视频还没有优惠活动。</div>';
+                    return;
+                }
+
+                couponActivityList.innerHTML = activities.map(function (activity) {
+                    return ''
+                        + '<article class="coupon-card admin-coupon-card">'
+                        + '  <div class="coupon-card-head">'
+                        + '    <div>'
+                        + '      <div class="coupon-platform">' + StudioApp.escapeHtml(activity.platformName || "优惠平台") + '</div>'
+                        + '      <h3>' + StudioApp.escapeHtml(activity.title || "优惠活动") + '</h3>'
+                        + '    </div>'
+                        + '    <span class="pill">活动 #' + StudioApp.escapeHtml(activity.id) + '</span>'
+                        + '  </div>'
+                        + '  <div class="coupon-meta-row">'
+                        + '    <span class="tag">总库存 ' + StudioApp.formatCount(activity.totalStock) + '</span>'
+                        + '    <span class="tag">剩余 ' + StudioApp.formatCount(activity.availableStock) + '</span>'
+                        + '    <span class="tag">开始 ' + StudioApp.escapeHtml(activity.startTime || "--") + '</span>'
+                        + '    <span class="tag">结束 ' + StudioApp.escapeHtml(activity.endTime || "--") + '</span>'
+                        + '  </div>'
+                        + '  <div class="coupon-adjust-row">'
+                        + '    <input class="coupon-adjust-input" type="number" data-stock-input="' + StudioApp.escapeHtml(activity.id) + '" placeholder="输入正数补库存，负数扣库存">'
+                        + '    <button class="btn btn-secondary" type="button" data-adjust-coupon="' + StudioApp.escapeHtml(activity.id) + '">调整库存</button>'
+                        + '  </div>'
+                        + '</article>';
+                }).join("");
+
+                bindCouponActions();
+            } catch (error) {
+                couponActivityList.innerHTML = '<div class="empty-state">优惠活动加载失败：' + StudioApp.escapeHtml(error.message) + '</div>';
+            }
+        }
+
+        couponForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submitButton = couponForm.querySelector("button");
+            submitButton.disabled = true;
+            submitButton.textContent = "创建中...";
+
+            try {
+                const formData = new FormData(couponForm);
+                const result = await StudioApp.request("api/admin/coupons/create", {
+                    method: "POST",
+                    form: {
+                        videoId: formData.get("videoId"),
+                        title: formData.get("title"),
+                        platformName: formData.get("platformName"),
+                        couponLink: formData.get("couponLink"),
+                        couponPrefix: formData.get("couponPrefix"),
+                        stock: formData.get("stock"),
+                        startTime: formData.get("startTime"),
+                        endTime: formData.get("endTime")
+                    }
+                });
+                StudioApp.showToast(result.message || "优惠活动创建成功", "success");
+                couponForm.reset();
+                couponVideoIdInput.value = selectedVideoId || "";
+                if (selectedVideoId) {
+                    await loadCouponsForVideo(selectedVideoId);
+                }
+            } catch (error) {
+                StudioApp.showToast(error.message, "error");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "创建活动";
+            }
+        });
+
         document.getElementById("refresh-admin").addEventListener("click", async function () {
             try {
                 await loadStats();
                 await loadAdminVideos();
                 if (selectedVideoId) {
                     await loadCommentsForVideo(selectedVideoId);
+                    await loadCouponsForVideo(selectedVideoId);
                 }
                 StudioApp.showToast("管理台数据已刷新", "success");
             } catch (error) {
@@ -262,6 +448,7 @@
 
         StudioApp.attachSessionUi();
         StudioApp.mountLogout();
+        applySelectedVideo(null);
         loadStats();
         loadAdminVideos();
     }());

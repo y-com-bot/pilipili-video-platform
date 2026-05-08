@@ -1,19 +1,41 @@
 package com.yuan.dao;
 
 import com.yuan.entity.Comment;
-import framework.springMVC.MyService;
+import com.yuan.utils.ConfigManager;
+import springMVC.MyService;
+
 import java.util.List;
 
 @MyService
 public class CommentDAO extends BaseDAO {
+
+    private static final int DEFAULT_LIST_SIZE = Integer.parseInt(
+            ConfigManager.getProperty("comment.list.default-size", "20")
+    );
+    private static final int MAX_LIST_SIZE = Integer.parseInt(
+            ConfigManager.getProperty("comment.list.max-size", "100")
+    );
+
     public boolean insertComment(Comment comment) {
-        String sql = "insert into comment (video_id, user_id, content) values (?, ?, ?)";
-        return update(sql, comment.getVideoId(), comment.getUserId(), comment.getContent()) > 0;
+        String sql = "insert into comment (target_type, target_id, user_id, content) values (?, ?, ?, ?)";
+        return update(sql, comment.getTargetType(), comment.getTargetId(), comment.getUserId(), comment.getContent()) > 0;
     }
 
     public List<Comment> findByVideoId(Long videoId) {
-        String sql = "select id, video_id as videoId, user_id as userId, content, like_count as likeCount, create_time as createTime from comment where video_id = ?";
-        return queryForList(Comment.class, sql, videoId);
+        return findByTarget(0, videoId, DEFAULT_LIST_SIZE);
+    }
+
+    public List<Comment> findByTarget(Integer targetType, Long targetId) {
+        return findByTarget(targetType, targetId, DEFAULT_LIST_SIZE);
+    }
+
+    public List<Comment> findByTarget(Integer targetType, Long targetId, Integer pageSize) {
+        String sql = "select id, target_type as targetType, target_id as targetId, "
+                + "case when target_type = 0 then target_id else null end as videoId, "
+                + "user_id as userId, content, like_count as likeCount, create_time as createTime "
+                + "from comment where target_type = ? and target_id = ? "
+                + "order by create_time desc, id desc limit " + normalizeLimit(pageSize);
+        return queryForList(Comment.class, sql, targetType, targetId);
     }
 
     public boolean deleteById(Long commentId, Long userId) {
@@ -39,8 +61,26 @@ public class CommentDAO extends BaseDAO {
     }
 
     public List<Comment> findByVideoIdOrderByHot(Long videoId) {
-        String sql = "select id, video_id as videoId, user_id as userId, content, like_count as likeCount, create_time as createTime "
-                + "from comment where video_id = ? order by like_count desc, create_time desc";
-        return queryForList(Comment.class, sql, videoId);
+        return findByTargetOrderByHot(0, videoId, DEFAULT_LIST_SIZE);
+    }
+
+    public List<Comment> findByTargetOrderByHot(Integer targetType, Long targetId) {
+        return findByTargetOrderByHot(targetType, targetId, DEFAULT_LIST_SIZE);
+    }
+
+    public List<Comment> findByTargetOrderByHot(Integer targetType, Long targetId, Integer pageSize) {
+        String sql = "select id, target_type as targetType, target_id as targetId, "
+                + "case when target_type = 0 then target_id else null end as videoId, "
+                + "user_id as userId, content, like_count as likeCount, create_time as createTime "
+                + "from comment where target_type = ? and target_id = ? "
+                + "order by like_count desc, create_time desc, id desc limit " + normalizeLimit(pageSize);
+        return queryForList(Comment.class, sql, targetType, targetId);
+    }
+
+    private int normalizeLimit(Integer pageSize) {
+        if (pageSize == null || pageSize <= 0) {
+            return DEFAULT_LIST_SIZE;
+        }
+        return Math.min(pageSize, MAX_LIST_SIZE);
     }
 }

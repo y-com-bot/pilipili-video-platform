@@ -1,14 +1,17 @@
-/**
- * 前端公共工具层。
- *
- * 这次页面是完整重写的，所以把和后端交互、登录态存储、提示消息这些重复逻辑
- * 都放到一个共享脚本里，避免每个页面都各写一套 fetch 和 localStorage 代码。
- */
 (function () {
     const SESSION_KEY = "studio-session";
     const LIKE_TARGET = {
         VIDEO: 0,
-        COMMENT: 1
+        COMMENT: 1,
+        DYNAMIC: 2
+    };
+    const CONTENT_TARGET = {
+        VIDEO: 0,
+        DYNAMIC: 1
+    };
+    const FAVORITE_TARGET = {
+        VIDEO: 0,
+        DYNAMIC: 1
     };
 
     function normalizePath(path) {
@@ -36,6 +39,24 @@
             return (number / 10000).toFixed(1).replace(/\.0$/, "") + "w";
         }
         return String(number);
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return "--";
+        }
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+        const pad = function (part) {
+            return String(part).padStart(2, "0");
+        };
+        return date.getFullYear()
+            + "-" + pad(date.getMonth() + 1)
+            + "-" + pad(date.getDate())
+            + " " + pad(date.getHours())
+            + ":" + pad(date.getMinutes());
     }
 
     function safeJsonParse(raw) {
@@ -98,11 +119,13 @@
             headers.Authorization = session.token;
         }
 
-        if (options.form) {
+        if (options.formData) {
+            body = options.formData;
+        } else if (options.form) {
             body = new URLSearchParams();
             Object.keys(options.form).forEach(function (key) {
                 const value = options.form[key];
-                if (value !== undefined && value !== null) {
+                if (value !== undefined && value !== null && value !== "") {
                     body.append(key, value);
                 }
             });
@@ -245,8 +268,11 @@
 
     window.StudioApp = {
         LIKE_TARGET: LIKE_TARGET,
+        CONTENT_TARGET: CONTENT_TARGET,
+        FAVORITE_TARGET: FAVORITE_TARGET,
         escapeHtml: escapeHtml,
         formatCount: formatCount,
+        formatDate: formatDate,
         request: request,
         readSession: readSession,
         saveSession: saveSession,

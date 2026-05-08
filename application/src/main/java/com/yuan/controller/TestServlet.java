@@ -1,8 +1,8 @@
 package com.yuan.controller;
 
-import framework.springMVC.MyController;
-import framework.springMVC.MyRequestMapping;
-import framework.springMVC.MyResponseBody;
+import springMVC.MyController;
+import springMVC.MyRequestMapping;
+import springMVC.MyResponseBody;
 
 @MyController
 @MyRequestMapping("/api/system")

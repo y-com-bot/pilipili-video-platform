@@ -1,6 +1,6 @@
 package com.yuan.dao;
 
-import framework.springMVC.MyService;
+import springMVC.MyService;
 
 @MyService
 public class LikeDAO extends BaseDAO {
@@ -22,7 +22,12 @@ public class LikeDAO extends BaseDAO {
     }
 
     public void updateLikeCount(Integer targetType, Long targetId, int increment) {
-        String tableName = (targetType == 0) ? "video" : "comment";
+        String tableName = switch (targetType) {
+            case 0 -> "video";
+            case 1 -> "comment";
+            case 2 -> "dynamic_post";
+            default -> throw new IllegalArgumentException("unsupported like target type: " + targetType);
+        };
         String sql = "update " + tableName + " set like_count = like_count + ? where id = ?";
         update(sql, increment, targetId);
     }

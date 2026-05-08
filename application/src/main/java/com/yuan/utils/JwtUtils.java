@@ -7,6 +7,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 
 import java.util.Date;
+import java.util.UUID;
 
 public class JwtUtils {
     private static final String SECRET = "dsjafk_jdfkgk_91kdhfo";
@@ -14,10 +15,13 @@ public class JwtUtils {
 
     public static String createToken(Long userId, String username, String role){
         Algorithm algorithm = Algorithm.HMAC256(SECRET);
+        Date now = new Date();
         return JWT.create().withClaim("userId", userId)
                 .withClaim("username",username)
                 .withClaim("role",role)
-                .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRE_TIME))
+                .withIssuedAt(now)
+                .withJWTId(UUID.randomUUID().toString())
+                .withExpiresAt(new Date(now.getTime() + EXPIRE_TIME))
                 .sign(algorithm);
     }
 
